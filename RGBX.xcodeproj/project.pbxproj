@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		178C38992C25B93C00F0A253 /* Renderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 178C38982C25B93C00F0A253 /* Renderer.swift */; };
 		17AAA02B2C25018B007EE5D8 /* RGBXApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17AAA02A2C25018B007EE5D8 /* RGBXApp.swift */; };
 		17AAA02D2C25018B007EE5D8 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17AAA02C2C25018B007EE5D8 /* ContentView.swift */; };
 		17AAA02F2C25018C007EE5D8 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 17AAA02E2C25018C007EE5D8 /* Assets.xcassets */; };
@@ -16,6 +17,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		178C38982C25B93C00F0A253 /* Renderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Renderer.swift; sourceTree = "<group>"; };
 		17AAA0272C25018B007EE5D8 /* RGBX.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RGBX.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		17AAA02A2C25018B007EE5D8 /* RGBXApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RGBXApp.swift; sourceTree = "<group>"; };
 		17AAA02C2C25018B007EE5D8 /* ContentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ContentView.swift; sourceTree = "<group>"; };
@@ -58,6 +60,7 @@
 			children = (
 				17AAA0392C252DEF007EE5D8 /* Shaders.metal */,
 				17AAA02A2C25018B007EE5D8 /* RGBXApp.swift */,
+				178C38982C25B93C00F0A253 /* Renderer.swift */,
 				17AAA03B2C2533E1007EE5D8 /* MetalView.swift */,
 				17AAA02C2C25018B007EE5D8 /* ContentView.swift */,
 				17AAA02E2C25018C007EE5D8 /* Assets.xcassets */,
@@ -148,6 +151,7 @@
 				17AAA03C2C2533E1007EE5D8 /* MetalView.swift in Sources */,
 				17AAA03A2C252DEF007EE5D8 /* Shaders.metal in Sources */,
 				17AAA02D2C25018B007EE5D8 /* ContentView.swift in Sources */,
+				178C38992C25B93C00F0A253 /* Renderer.swift in Sources */,
 				17AAA02B2C25018B007EE5D8 /* RGBXApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
