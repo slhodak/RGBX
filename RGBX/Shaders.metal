@@ -1,6 +1,10 @@
 #include <metal_stdlib>
 using namespace metal;
 
+struct VertexUniforms {
+    float2 textureScale;
+};
+
 struct VertexIn {
     float3 position     [[attribute(0)]];
     float2 texCoords    [[attribute(2)]];
@@ -11,10 +15,11 @@ struct VertexOut {
     float2 texCoords;
 };
 
-vertex VertexOut vertex_main(VertexIn v_in [[stage_in]]) {
+vertex VertexOut vertex_main(VertexIn v_in [[stage_in]],
+                             constant VertexUniforms &vertexUniforms [[buffer(1)]]) {
     VertexOut v_out;
     v_out.position = float4(v_in.position, 1);
-    v_out.texCoords = v_in.texCoords;
+    v_out.texCoords = v_in.texCoords * vertexUniforms.textureScale;
     return v_out;
 };
 

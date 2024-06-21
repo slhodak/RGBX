@@ -94,12 +94,17 @@ class Renderer: NSObject, MTKViewDelegate {
         }
         
         let pixelCount = textureDescriptor.width * textureDescriptor.height
-        let blueColor: UInt32 = 0xFF0000FF
-        
+        /// argb because byte order is bgra but my M1 is little-endian, so LSB goes first
+        var color: UInt32 = 0b11111111_00000001_00000001_00000001
         var colorData: [UInt32] = []
         
         for i in 0..<pixelCount {
-            colorData.append(blueColor)
+            colorData.append(color)
+            if i % 7 == 0 {
+                color = color >> 6
+            } else {
+                color = color << 1
+            }
         }
         
         let bufferSize = pixelCount * MemoryLayout<UInt32>.size
@@ -140,8 +145,12 @@ class Renderer: NSObject, MTKViewDelegate {
         guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {
             return
         }
+        
+        var vertexUniforms = VertexUniforms(textureScale: simd_float2(0.1, 0.1))
+        
         renderEncoder.setFragmentSamplerState(samplerState, index: 0)
         renderEncoder.setRenderPipelineState(pipelineState)
+        renderEncoder.setVertexBytes(&vertexUniforms, length: MemoryLayout<VertexUniforms>.size, index: 1)
         drawPlane(renderEncoder: renderEncoder)
         renderEncoder.endEncoding()
         commandBuffer.present(drawable)
@@ -164,6 +173,10 @@ class Renderer: NSObject, MTKViewDelegate {
                                             indexBuffer: indexBuffer,
                                             indexBufferOffset: 0)
     }
+}
+
+struct VertexUniforms {
+    var textureScale: simd_float2
 }
 
 struct Vertex {
