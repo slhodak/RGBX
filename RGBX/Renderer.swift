@@ -7,6 +7,8 @@ class Renderer: NSObject, MTKViewDelegate {
     var commandQueue: MTLCommandQueue
     var vertexDescriptor: MTLVertexDescriptor
     var pipelineState: MTLRenderPipelineState
+    var samplerState: MTLSamplerState
+    var material: Material
     let plane = Plane()
     
     init(device: MTLDevice, metalView: MTKView) {
@@ -17,9 +19,37 @@ class Renderer: NSObject, MTKViewDelegate {
         pipelineState = Renderer.makePipelineState(device: device,
                                                    view: metalView,
                                                    vertexDescriptor: vertexDescriptor)
+        samplerState = Renderer.makeSamplerState(device: device)
+        material = Renderer.makeMaterial(device: device)
     }
     
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
+    }
+    
+    static func makeMaterial(device: MTLDevice) -> Material {
+        let textureLoader = MTKTextureLoader(device: device)
+        let options: [MTKTextureLoader.Option: Any] = [
+            .generateMipmaps: true,
+            .SRGB: true,
+        ]
+        let baseColorTexture = try? textureLoader.newTexture(name: "neon_purple_grid",
+                                                             scaleFactor: 1,
+                                                             bundle: nil,
+                                                             options: options)
+        let material = Material(baseColorTexture: baseColorTexture)
+        return material
+    }
+    
+    static func makeSamplerState(device: MTLDevice) -> MTLSamplerState {
+        let samplerDescriptor = MTLSamplerDescriptor()
+        samplerDescriptor.normalizedCoordinates = true
+        samplerDescriptor.minFilter = .linear
+        samplerDescriptor.magFilter = .linear
+        samplerDescriptor.mipFilter = .linear
+        samplerDescriptor.rAddressMode = .repeat
+        samplerDescriptor.sAddressMode = .repeat
+        samplerDescriptor.tAddressMode = .repeat
+        return device.makeSamplerState(descriptor: samplerDescriptor)!
     }
     
     static func makeVertexDescriptor() -> MTLVertexDescriptor {
@@ -32,12 +62,12 @@ class Renderer: NSObject, MTKViewDelegate {
         vertexDescriptor.attributes[1].format = .float3
         vertexDescriptor.attributes[1].offset = MemoryLayout<Float>.size * 3
         vertexDescriptor.attributes[1].bufferIndex = 0
-        /// Color
-        vertexDescriptor.attributes[2].format = .float4
+        /// Texture Coordinates
+        vertexDescriptor.attributes[2].format = .float2
         vertexDescriptor.attributes[2].offset = MemoryLayout<Float>.size * 6
         vertexDescriptor.attributes[2].bufferIndex = 0
         /// Configure layout
-        vertexDescriptor.layouts[0].stride = MemoryLayout<Float>.size * 10
+        vertexDescriptor.layouts[0].stride = MemoryLayout<Float>.size * 8
         vertexDescriptor.layouts[0].stepRate = 1
         vertexDescriptor.layouts[0].stepFunction = .perVertex
         
@@ -68,6 +98,7 @@ class Renderer: NSObject, MTKViewDelegate {
             return
         }
         
+        renderEncoder.setFragmentSamplerState(samplerState, index: 0)
         renderEncoder.setRenderPipelineState(pipelineState)
         drawPlane(renderEncoder: renderEncoder)
         renderEncoder.endEncoding()
@@ -76,12 +107,6 @@ class Renderer: NSObject, MTKViewDelegate {
     }
     
     func drawPlane(renderEncoder: MTLRenderCommandEncoder) {
-        var vertexUniforms = VertexUniforms(viewProjectionMatrix: matrix_identity_float4x4,
-                                            modelMatrix: plane.modelMatrix,
-                                            normalMatrix: plane.normalMatrix)
-        
-        renderEncoder.setVertexBytes(&vertexUniforms, length: MemoryLayout<VertexUniforms>.size, index: 1)
-        
         let vertexBuffer = device.makeBuffer(bytes: plane.vertices,
                                              length: plane.vertices.count * MemoryLayout<Vertex>.stride,
                                              options: .storageModeShared)
@@ -89,6 +114,7 @@ class Renderer: NSObject, MTKViewDelegate {
                                             length: plane.indices.count * MemoryLayout<UInt16>.size,
                                             options: [])!
         
+        renderEncoder.setFragmentTexture(material.baseColorTexture, index: 0)
         renderEncoder.setVertexBuffer(vertexBuffer, offset: 0, index: 0)
         renderEncoder.drawIndexedPrimitives(type: .triangle,
                                             indexCount: plane.indices.count,
@@ -98,31 +124,26 @@ class Renderer: NSObject, MTKViewDelegate {
     }
 }
 
-struct VertexUniforms {
-    var viewProjectionMatrix: simd_float4x4
-    var modelMatrix: simd_float4x4
-    var normalMatrix: simd_float3x3
-}
-
 struct Vertex {
     var position: (Float, Float, Float)
     var normal: (Float, Float, Float)
-    var color: (Float, Float, Float, Float)
+    var texCoords: (Float, Float) = (0, 0)
 }
 
 struct Plane {
     let vertices: [Vertex] = [
-        Vertex(position: (-0.9, -0.9, 0), normal: (0, 0, 1), color: (1, 0, 0, 1)),
-        Vertex(position: ( 0.9, -0.9, 0), normal: (0, 0, 1), color: (0, 1, 0, 1)),
-        Vertex(position: (-0.9,  0.9, 0), normal: (0, 0, 1), color: (0, 0, 1, 1)),
-        Vertex(position: ( 0.9,  0.9, 0), normal: (0, 0, 1), color: (1, 0, 1, 1))
+        Vertex(position: (-0.9, -0.9, 0), normal: (0, 0, -1)),
+        Vertex(position: ( 0.9, -0.9, 0), normal: (0, 0, -1)),
+        Vertex(position: (-0.9,  0.9, 0), normal: (0, 0, -1)),
+        Vertex(position: ( 0.9,  0.9, 0), normal: (0, 0, -1))
     ]
     
     let indices: [UInt16] = [
         0, 1, 2,
         2, 1, 3
     ]
-    
-    let modelMatrix = matrix_identity_float4x4
-    let normalMatrix = matrix_identity_float3x3
+}
+
+struct Material {
+    var baseColorTexture: MTLTexture?
 }
