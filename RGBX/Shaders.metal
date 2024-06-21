@@ -10,14 +10,14 @@ struct VertexUniforms {
 struct VertexIn {
     float3 position     [[attribute(0)]];
     float3 normal       [[attribute(1)]];
-    float3 color        [[attribute(2)]];
+    float4 color        [[attribute(2)]];
 };
 
 struct VertexOut {
     float4 position     [[position]];
     float3 worldNormal;
     float3 worldPosition;
-    float3 color;
+    float4 color;
 };
 
 vertex VertexOut vertex_main(VertexIn v_in [[stage_in]],
@@ -32,5 +32,5 @@ vertex VertexOut vertex_main(VertexIn v_in [[stage_in]],
 };
 
 fragment float4 fragment_main(VertexOut frag_in [[stage_in]]) {
-    return float4(frag_in.color, 1);
+    return frag_in.color;
 };

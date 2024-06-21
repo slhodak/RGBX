@@ -16,8 +16,8 @@ struct RGBXApp: App {
         self.device = device
         metalView = MTKView()
         metalView.device = device
-        metalView.isPaused = true
-        metalView.enableSetNeedsDisplay = true
+//        metalView.isPaused = true
+//        metalView.enableSetNeedsDisplay = true
         metalView.colorPixelFormat = .bgra8Unorm
         renderer = Renderer(device: device, metalView: metalView)
         metalView.delegate = renderer
@@ -62,11 +62,11 @@ class Renderer: NSObject, MTKViewDelegate {
         vertexDescriptor.attributes[1].offset = MemoryLayout<Float>.size * 3
         vertexDescriptor.attributes[1].bufferIndex = 0
         /// Color
-        vertexDescriptor.attributes[2].format = .float3
+        vertexDescriptor.attributes[2].format = .float4
         vertexDescriptor.attributes[2].offset = MemoryLayout<Float>.size * 6
         vertexDescriptor.attributes[2].bufferIndex = 0
         /// Configure layout
-        vertexDescriptor.layouts[0].stride = MemoryLayout<Float>.size * 9
+        vertexDescriptor.layouts[0].stride = MemoryLayout<Float>.size * 10
         vertexDescriptor.layouts[0].stepRate = 1
         vertexDescriptor.layouts[0].stepFunction = .perVertex
         
@@ -108,6 +108,7 @@ class Renderer: NSObject, MTKViewDelegate {
         var vertexUniforms = VertexUniforms(viewProjectionMatrix: matrix_identity_float4x4,
                                             modelMatrix: plane.modelMatrix,
                                             normalMatrix: plane.normalMatrix)
+        
         renderEncoder.setVertexBytes(&vertexUniforms, length: MemoryLayout<VertexUniforms>.size, index: 1)
         
         let vertexBuffer = device.makeBuffer(bytes: plane.vertices,
@@ -133,16 +134,17 @@ struct VertexUniforms {
 }
 
 struct Vertex {
-    var position: SIMD3<Float>
-    var color: SIMD4<Float>
+    var position: (Float, Float, Float)
+    var normal: (Float, Float, Float)
+    var color: (Float, Float, Float, Float)
 }
 
 struct Plane {
     let vertices: [Vertex] = [
-        Vertex(position: SIMD3<Float>(-1, -1, 0), color: SIMD4<Float>(1, 0, 0, 1)),
-        Vertex(position: SIMD3<Float>( 1, -1, 0), color: SIMD4<Float>(0, 1, 0, 1)),
-        Vertex(position: SIMD3<Float>(-1,  1, 0), color: SIMD4<Float>(0, 0, 1, 1)),
-        Vertex(position: SIMD3<Float>( 1,  1, 0), color: SIMD4<Float>(1, 0, 0, 1))
+        Vertex(position: (-0.9, -0.9, 0), normal: (0, 0, 1), color: (1, 0, 0, 1)),
+        Vertex(position: ( 0.9, -0.9, 0), normal: (0, 0, 1), color: (0, 1, 0, 1)),
+        Vertex(position: (-0.9,  0.9, 0), normal: (0, 0, 1), color: (0, 0, 1, 1)),
+        Vertex(position: ( 0.9,  0.9, 0), normal: (0, 0, 1), color: (1, 0, 1, 1))
     ]
     
     let indices: [UInt16] = [
