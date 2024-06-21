@@ -139,15 +139,15 @@ struct Vertex {
 
 struct Plane {
     let vertices: [Vertex] = [
-        Vertex(position: SIMD3<Float>(-1, -1, 0), color: SIMD4<Float>(1, 0, 0, 1)),  // Bottom-left
-        Vertex(position: SIMD3<Float>( 1, -1, 0), color: SIMD4<Float>(0, 1, 0, 1)),  // Bottom-right
-        Vertex(position: SIMD3<Float>(-1,  1, 0), color: SIMD4<Float>(0, 0, 1, 1)),  // Top-left
-        Vertex(position: SIMD3<Float>( 1,  1, 0), color: SIMD4<Float>(1, 0, 0, 1))   // Top-right
+        Vertex(position: SIMD3<Float>(-1, -1, 0), color: SIMD4<Float>(1, 0, 0, 1)),
+        Vertex(position: SIMD3<Float>( 1, -1, 0), color: SIMD4<Float>(0, 1, 0, 1)),
+        Vertex(position: SIMD3<Float>(-1,  1, 0), color: SIMD4<Float>(0, 0, 1, 1)),
+        Vertex(position: SIMD3<Float>( 1,  1, 0), color: SIMD4<Float>(1, 0, 0, 1))
     ]
     
     let indices: [UInt16] = [
-        0, 1, 2,    // First triangle
-        2, 1, 3     // Second triangle
+        0, 1, 2,
+        2, 1, 3
     ]
     
     let modelMatrix = matrix_identity_float4x4
