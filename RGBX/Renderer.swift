@@ -105,9 +105,16 @@ class Renderer: NSObject, MTKViewDelegate {
         }
         
         let pixelCount = textureDescriptor.width * textureDescriptor.height
-        var colorData = [RGBAPixel](repeating: RGBAPixel(b: 255, g: 0, r: 0, a: 255), count: pixelCount)
+        let blueColor: UInt32 = 0xFF0000FF
         
-        let bufferSize = textureDescriptor.width * textureDescriptor.height * MemoryLayout<RGBAPixel>.size
+        var colorData: [UInt32] = []
+        
+//        for i in 0..<pixelCount {
+//            colorData.append(blueColor)
+//        }
+        colorData = generateCoolPattern(width: textureDescriptor.width, height: textureDescriptor.height)
+        
+        let bufferSize = pixelCount * MemoryLayout<UInt32>.size
         let buffer = colorData.withUnsafeBytes { bytes in
             return device.makeBuffer(bytes: bytes.baseAddress!,
                                      length: bufferSize,
@@ -118,7 +125,7 @@ class Renderer: NSObject, MTKViewDelegate {
             fatalError("Failed to create texture color data buffer")
         }
         
-        let bytesPerRow = textureDescriptor.width * MemoryLayout<RGBAPixel>.size
+        let bytesPerRow = textureDescriptor.width * MemoryLayout<UInt32>.size
         blitEncoder.copy(from: buffer,
                          sourceOffset: 0,
                          sourceBytesPerRow: bytesPerRow,
@@ -194,9 +201,36 @@ struct Material {
     var texture: MTLTexture?
 }
 
-struct RGBAPixel {
-    var b: UInt8
-    var g: UInt8
-    var r: UInt8
-    var a: UInt8
+
+func generateCoolPattern(width: Int, height: Int) -> [UInt32] {
+    var pixels = [UInt32](repeating: 0, count: width * height)
+    let centerX = Float(width) / 2
+    let centerY = Float(height) / 2
+    let maxDistance = sqrt(centerX * centerX + centerY * centerY)
+    
+    for y in 0..<height {
+        for x in 0..<width {
+            let dx = Float(x) - centerX
+            let dy = Float(y) - centerY
+            let distance = sqrt(dx * dx + dy * dy)
+            let angle = atan2(dy, dx)
+            
+            // Normalize distance and angle
+            let normalizedDistance = distance / maxDistance
+            let normalizedAngle = (angle + .pi) / (2 * .pi)
+            
+            // Generate color components
+            let r = UInt32((sin(normalizedDistance * 10) * 0.5 + 0.5) * 255)
+            let g = UInt32((cos(normalizedAngle * 8) * 0.5 + 0.5) * 255)
+            let b = UInt32((1 - normalizedDistance) * 255)
+            let a: UInt32 = 255
+            
+            // Combine color components
+            let color = (a << 24) | (r << 16) | (g << 8) | b
+            
+            pixels[y * width + x] = color
+        }
+    }
+    
+    return pixels
 }
