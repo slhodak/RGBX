@@ -7,6 +7,7 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		177041A42C26201000C17E23 /* LabeledSlider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 177041A32C26201000C17E23 /* LabeledSlider.swift */; };
 		178C38992C25B93C00F0A253 /* Renderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 178C38982C25B93C00F0A253 /* Renderer.swift */; };
 		17AAA02B2C25018B007EE5D8 /* RGBXApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17AAA02A2C25018B007EE5D8 /* RGBXApp.swift */; };
 		17AAA02D2C25018B007EE5D8 /* ContentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17AAA02C2C25018B007EE5D8 /* ContentView.swift */; };
@@ -17,6 +18,7 @@
 /* End PBXBuildFile section */
 
 /* Begin PBXFileReference section */
+		177041A32C26201000C17E23 /* LabeledSlider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LabeledSlider.swift; sourceTree = "<group>"; };
 		178C38982C25B93C00F0A253 /* Renderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Renderer.swift; sourceTree = "<group>"; };
 		17AAA0272C25018B007EE5D8 /* RGBX.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RGBX.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		17AAA02A2C25018B007EE5D8 /* RGBXApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RGBXApp.swift; sourceTree = "<group>"; };
@@ -39,6 +41,14 @@
 /* End PBXFrameworksBuildPhase section */
 
 /* Begin PBXGroup section */
+		177041A22C261FFB00C17E23 /* UI_Utilities */ = {
+			isa = PBXGroup;
+			children = (
+				177041A32C26201000C17E23 /* LabeledSlider.swift */,
+			);
+			path = UI_Utilities;
+			sourceTree = "<group>";
+		};
 		17AAA01E2C25018B007EE5D8 = {
 			isa = PBXGroup;
 			children = (
@@ -63,6 +73,7 @@
 				178C38982C25B93C00F0A253 /* Renderer.swift */,
 				17AAA03B2C2533E1007EE5D8 /* MetalView.swift */,
 				17AAA02C2C25018B007EE5D8 /* ContentView.swift */,
+				177041A22C261FFB00C17E23 /* UI_Utilities */,
 				17AAA02E2C25018C007EE5D8 /* Assets.xcassets */,
 				17AAA0332C25018C007EE5D8 /* RGBX.entitlements */,
 				17AAA0302C25018C007EE5D8 /* Preview Content */,
@@ -150,6 +161,7 @@
 			files = (
 				17AAA03C2C2533E1007EE5D8 /* MetalView.swift in Sources */,
 				17AAA03A2C252DEF007EE5D8 /* Shaders.metal in Sources */,
+				177041A42C26201000C17E23 /* LabeledSlider.swift in Sources */,
 				17AAA02D2C25018B007EE5D8 /* ContentView.swift in Sources */,
 				178C38992C25B93C00F0A253 /* Renderer.swift in Sources */,
 				17AAA02B2C25018B007EE5D8 /* RGBXApp.swift in Sources */,

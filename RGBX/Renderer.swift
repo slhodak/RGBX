@@ -1,7 +1,7 @@
 import MetalKit
 import simd
 
-class Renderer: NSObject, MTKViewDelegate {
+class Renderer: NSObject, MTKViewDelegate, ObservableObject {
     var device: MTLDevice
     var view: MTKView
     var commandQueue: MTLCommandQueue
@@ -9,6 +9,11 @@ class Renderer: NSObject, MTKViewDelegate {
     var pipelineState: MTLRenderPipelineState
     var samplerState: MTLSamplerState
     var textureDescriptor: MTLTextureDescriptor
+    @Published var textureScale: Float = 1
+    @Published var textureP1: Float = 1
+    @Published var textureP2: Float = 1
+    @Published var textureP3: Float = 1
+    @Published var textureP4: Float = 1
     var material: Material
     let plane = Plane()
     
@@ -45,9 +50,9 @@ class Renderer: NSObject, MTKViewDelegate {
     static func makeSamplerState(device: MTLDevice) -> MTLSamplerState {
         let samplerDescriptor = MTLSamplerDescriptor()
         samplerDescriptor.normalizedCoordinates = true
-        samplerDescriptor.minFilter = .linear
-        samplerDescriptor.magFilter = .linear
-        samplerDescriptor.mipFilter = .linear
+        samplerDescriptor.minFilter = .nearest
+        samplerDescriptor.magFilter = .nearest
+        //samplerDescriptor.mipFilter = .linear
         samplerDescriptor.rAddressMode = .repeat
         samplerDescriptor.sAddressMode = .repeat
         samplerDescriptor.tAddressMode = .repeat
@@ -95,16 +100,20 @@ class Renderer: NSObject, MTKViewDelegate {
         
         let pixelCount = textureDescriptor.width * textureDescriptor.height
         /// argb because byte order is bgra but my M1 is little-endian, so LSB goes first
-        var color: UInt32 = 0b11111111_00000001_00000001_00000001
+        let opaque: UInt32      = 0b11111111_00000000_00000000_00000000
+        var color: UInt32       = 0b11111111_00000000_00000000_00000000
+        let colorMask: UInt32   = 0b00000000_11111111_11111111_11111111
         var colorData: [UInt32] = []
         
         for i in 0..<pixelCount {
             colorData.append(color)
-            if i % 7 == 0 {
-                color = color >> 6
-            } else {
-                color = color << 1
+            if i % Int(textureP3) == 0 {
+                color = color << UInt32(textureP1)
+            } else if i % Int(textureP4) == 0 {
+                color = color >> UInt32(textureP2)
             }
+            color = (color + 1) % colorMask
+            color = color | opaque
         }
         
         let bufferSize = pixelCount * MemoryLayout<UInt32>.size
@@ -146,7 +155,7 @@ class Renderer: NSObject, MTKViewDelegate {
             return
         }
         
-        var vertexUniforms = VertexUniforms(textureScale: simd_float2(0.1, 0.1))
+        var vertexUniforms = VertexUniforms(textureScale: simd_float2(textureScale, textureScale))
         
         renderEncoder.setFragmentSamplerState(samplerState, index: 0)
         renderEncoder.setRenderPipelineState(pipelineState)

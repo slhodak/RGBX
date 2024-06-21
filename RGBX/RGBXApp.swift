@@ -23,8 +23,7 @@ struct RGBXApp: App {
     
     var body: some Scene {
         WindowGroup {
-            ContentView(device: device, metalView: metalView)
-        }
-//        .windowResizability(.contentSize)
+            ContentView(device: device, metalView: metalView, renderer: renderer)
+        }.windowResizability(.contentSize)
     }
 }
