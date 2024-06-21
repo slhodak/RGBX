@@ -122,15 +122,15 @@ class Renderer: NSObject, MTKViewDelegate {
 
 struct Vertex {
     var position: (Float, Float, Float)
-    var texCoords: (Float, Float) = (0, 0)
+    var texCoords: (Float, Float)
 }
 
 struct Plane {
     let vertices: [Vertex] = [
-        Vertex(position: (-0.9, -0.9, 0)),
-        Vertex(position: ( 0.9, -0.9, 0)),
-        Vertex(position: (-0.9,  0.9, 0)),
-        Vertex(position: ( 0.9,  0.9, 0))
+        Vertex(position: (-0.9, -0.9, 0), texCoords: (0, 1)),
+        Vertex(position: ( 0.9, -0.9, 0), texCoords: (1, 1)),
+        Vertex(position: (-0.9,  0.9, 0), texCoords: (0, 0)),
+        Vertex(position: ( 0.9,  0.9, 0), texCoords: (1, 0))
     ]
     
     let indices: [UInt16] = [
