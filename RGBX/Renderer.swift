@@ -37,17 +37,6 @@ class Renderer: NSObject, MTKViewDelegate {
     }
     
     static func makeMaterial(device: MTLDevice, textureDescriptor: MTLTextureDescriptor) -> Material {
-//        let textureLoader = MTKTextureLoader(device: device)
-//        let options: [MTKTextureLoader.Option: Any] = [
-//            .generateMipmaps: true,
-//            .SRGB: true,
-//        ]
-//        let baseColorTexture = try? textureLoader.newTexture(name: "neon_purple_grid",
-//                                                             scaleFactor: 1,
-//                                                             bundle: nil,
-//                                                             options: options)
-//        let material = Material(baseColorTexture: baseColorTexture)
-        
         let texture = device.makeTexture(descriptor: textureDescriptor)
         let material = Material(texture: texture)
         return material
@@ -109,10 +98,9 @@ class Renderer: NSObject, MTKViewDelegate {
         
         var colorData: [UInt32] = []
         
-//        for i in 0..<pixelCount {
-//            colorData.append(blueColor)
-//        }
-        colorData = generateCoolPattern(width: textureDescriptor.width, height: textureDescriptor.height)
+        for i in 0..<pixelCount {
+            colorData.append(blueColor)
+        }
         
         let bufferSize = pixelCount * MemoryLayout<UInt32>.size
         let buffer = colorData.withUnsafeBytes { bytes in
@@ -199,38 +187,4 @@ struct Plane {
 
 struct Material {
     var texture: MTLTexture?
-}
-
-
-func generateCoolPattern(width: Int, height: Int) -> [UInt32] {
-    var pixels = [UInt32](repeating: 0, count: width * height)
-    let centerX = Float(width) / 2
-    let centerY = Float(height) / 2
-    let maxDistance = sqrt(centerX * centerX + centerY * centerY)
-    
-    for y in 0..<height {
-        for x in 0..<width {
-            let dx = Float(x) - centerX
-            let dy = Float(y) - centerY
-            let distance = sqrt(dx * dx + dy * dy)
-            let angle = atan2(dy, dx)
-            
-            // Normalize distance and angle
-            let normalizedDistance = distance / maxDistance
-            let normalizedAngle = (angle + .pi) / (2 * .pi)
-            
-            // Generate color components
-            let r = UInt32((sin(normalizedDistance * 10) * 0.5 + 0.5) * 255)
-            let g = UInt32((cos(normalizedAngle * 8) * 0.5 + 0.5) * 255)
-            let b = UInt32((1 - normalizedDistance) * 255)
-            let a: UInt32 = 255
-            
-            // Combine color components
-            let color = (a << 24) | (r << 16) | (g << 8) | b
-            
-            pixels[y * width + x] = color
-        }
-    }
-    
-    return pixels
 }
