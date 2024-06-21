@@ -19,8 +19,8 @@ vertex VertexOut vertex_main(VertexIn v_in [[stage_in]]) {
 };
 
 fragment float4 fragment_main(VertexOut frag_in [[stage_in]],
-                              texture2d<float, access::sample> baseColorTexture [[texture(0)]],
+                              texture2d<float, access::sample> texture [[texture(0)]],
                               sampler baseColorSampler [[sampler(0)]]) {
-    float3 baseColor = baseColorTexture.sample(baseColorSampler, frag_in.texCoords).rgb;
+    float3 baseColor = texture.sample(baseColorSampler, frag_in.texCoords).rgb;
     return float4(baseColor, 1);
 };

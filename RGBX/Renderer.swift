@@ -8,6 +8,7 @@ class Renderer: NSObject, MTKViewDelegate {
     var vertexDescriptor: MTLVertexDescriptor
     var pipelineState: MTLRenderPipelineState
     var samplerState: MTLSamplerState
+    var textureDescriptor: MTLTextureDescriptor
     var material: Material
     let plane = Plane()
     
@@ -20,23 +21,35 @@ class Renderer: NSObject, MTKViewDelegate {
                                                    view: metalView,
                                                    vertexDescriptor: vertexDescriptor)
         samplerState = Renderer.makeSamplerState(device: device)
-        material = Renderer.makeMaterial(device: device)
+        textureDescriptor = Renderer.makeTextureDescriptor()
+        material = Renderer.makeMaterial(device: device, textureDescriptor: textureDescriptor)
     }
     
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
     }
     
-    static func makeMaterial(device: MTLDevice) -> Material {
-        let textureLoader = MTKTextureLoader(device: device)
-        let options: [MTKTextureLoader.Option: Any] = [
-            .generateMipmaps: true,
-            .SRGB: true,
-        ]
-        let baseColorTexture = try? textureLoader.newTexture(name: "neon_purple_grid",
-                                                             scaleFactor: 1,
-                                                             bundle: nil,
-                                                             options: options)
-        let material = Material(baseColorTexture: baseColorTexture)
+    static func makeTextureDescriptor() -> MTLTextureDescriptor {
+        let textureDescriptor = MTLTextureDescriptor()
+        textureDescriptor.width = 256
+        textureDescriptor.height = 256
+        textureDescriptor.pixelFormat = .bgra8Unorm
+        return textureDescriptor
+    }
+    
+    static func makeMaterial(device: MTLDevice, textureDescriptor: MTLTextureDescriptor) -> Material {
+//        let textureLoader = MTKTextureLoader(device: device)
+//        let options: [MTKTextureLoader.Option: Any] = [
+//            .generateMipmaps: true,
+//            .SRGB: true,
+//        ]
+//        let baseColorTexture = try? textureLoader.newTexture(name: "neon_purple_grid",
+//                                                             scaleFactor: 1,
+//                                                             bundle: nil,
+//                                                             options: options)
+//        let material = Material(baseColorTexture: baseColorTexture)
+        
+        let texture = device.makeTexture(descriptor: textureDescriptor)
+        let material = Material(texture: texture)
         return material
     }
     
@@ -86,14 +99,52 @@ class Renderer: NSObject, MTKViewDelegate {
         }
     }
     
+    func setTextureColorData(commandBuffer: MTLCommandBuffer) {
+        guard let blitEncoder: MTLBlitCommandEncoder = commandBuffer.makeBlitCommandEncoder() else {
+            fatalError("Failed to create blit encoder")
+        }
+        
+        let pixelCount = textureDescriptor.width * textureDescriptor.height
+        var colorData = [RGBAPixel](repeating: RGBAPixel(b: 255, g: 0, r: 0, a: 255), count: pixelCount)
+        
+        let bufferSize = textureDescriptor.width * textureDescriptor.height * MemoryLayout<RGBAPixel>.size
+        let buffer = colorData.withUnsafeBytes { bytes in
+            return device.makeBuffer(bytes: bytes.baseAddress!,
+                                     length: bufferSize,
+                                     options: [])
+        }
+        
+        guard let buffer = buffer else {
+            fatalError("Failed to create texture color data buffer")
+        }
+        
+        let bytesPerRow = textureDescriptor.width * MemoryLayout<RGBAPixel>.size
+        blitEncoder.copy(from: buffer,
+                         sourceOffset: 0,
+                         sourceBytesPerRow: bytesPerRow,
+                         sourceBytesPerImage: bufferSize,
+                         sourceSize: MTLSize(width: textureDescriptor.width,
+                                             height: textureDescriptor.height,
+                                             depth: 1),
+                         to: material.texture!,
+                         destinationSlice: 0, destinationLevel: 0,
+                         destinationOrigin: MTLOrigin(x: 0, y: 0, z: 0)
+        )
+        blitEncoder.endEncoding()
+    }
+    
     func draw(in view: MTKView) {
         guard let drawable = view.currentDrawable,
               let renderPassDescriptor = view.currentRenderPassDescriptor,
-              let commandBuffer = commandQueue.makeCommandBuffer(),
-              let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {
+              let commandBuffer = commandQueue.makeCommandBuffer() else {
             return
         }
         
+        setTextureColorData(commandBuffer: commandBuffer)
+    
+        guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {
+            return
+        }
         renderEncoder.setFragmentSamplerState(samplerState, index: 0)
         renderEncoder.setRenderPipelineState(pipelineState)
         drawPlane(renderEncoder: renderEncoder)
@@ -110,7 +161,7 @@ class Renderer: NSObject, MTKViewDelegate {
                                             length: plane.indices.count * MemoryLayout<UInt16>.size,
                                             options: [])!
         
-        renderEncoder.setFragmentTexture(material.baseColorTexture, index: 0)
+        renderEncoder.setFragmentTexture(material.texture, index: 0)
         renderEncoder.setVertexBuffer(vertexBuffer, offset: 0, index: 0)
         renderEncoder.drawIndexedPrimitives(type: .triangle,
                                             indexCount: plane.indices.count,
@@ -140,5 +191,12 @@ struct Plane {
 }
 
 struct Material {
-    var baseColorTexture: MTLTexture?
+    var texture: MTLTexture?
+}
+
+struct RGBAPixel {
+    var b: UInt8
+    var g: UInt8
+    var r: UInt8
+    var a: UInt8
 }
