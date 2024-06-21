@@ -3,7 +3,6 @@ using namespace metal;
 
 struct VertexIn {
     float3 position     [[attribute(0)]];
-    float3 normal       [[attribute(1)]];
     float2 texCoords    [[attribute(2)]];
 };
 
@@ -23,5 +22,5 @@ fragment float4 fragment_main(VertexOut frag_in [[stage_in]],
                               texture2d<float, access::sample> baseColorTexture [[texture(0)]],
                               sampler baseColorSampler [[sampler(0)]]) {
     float3 baseColor = baseColorTexture.sample(baseColorSampler, frag_in.texCoords).rgb;
-    return frag_in.position;
+    return float4(baseColor, 1);
 };

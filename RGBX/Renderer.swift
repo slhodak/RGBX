@@ -58,16 +58,12 @@ class Renderer: NSObject, MTKViewDelegate {
         vertexDescriptor.attributes[0].format = .float3
         vertexDescriptor.attributes[0].offset = 0
         vertexDescriptor.attributes[0].bufferIndex = 0
-        /// Normal
-        vertexDescriptor.attributes[1].format = .float3
-        vertexDescriptor.attributes[1].offset = MemoryLayout<Float>.size * 3
-        vertexDescriptor.attributes[1].bufferIndex = 0
         /// Texture Coordinates
         vertexDescriptor.attributes[2].format = .float2
-        vertexDescriptor.attributes[2].offset = MemoryLayout<Float>.size * 6
+        vertexDescriptor.attributes[2].offset = MemoryLayout<Float>.size * 3
         vertexDescriptor.attributes[2].bufferIndex = 0
         /// Configure layout
-        vertexDescriptor.layouts[0].stride = MemoryLayout<Float>.size * 8
+        vertexDescriptor.layouts[0].stride = MemoryLayout<Float>.size * 5
         vertexDescriptor.layouts[0].stepRate = 1
         vertexDescriptor.layouts[0].stepFunction = .perVertex
         
@@ -126,16 +122,15 @@ class Renderer: NSObject, MTKViewDelegate {
 
 struct Vertex {
     var position: (Float, Float, Float)
-    var normal: (Float, Float, Float)
     var texCoords: (Float, Float) = (0, 0)
 }
 
 struct Plane {
     let vertices: [Vertex] = [
-        Vertex(position: (-0.9, -0.9, 0), normal: (0, 0, -1)),
-        Vertex(position: ( 0.9, -0.9, 0), normal: (0, 0, -1)),
-        Vertex(position: (-0.9,  0.9, 0), normal: (0, 0, -1)),
-        Vertex(position: ( 0.9,  0.9, 0), normal: (0, 0, -1))
+        Vertex(position: (-0.9, -0.9, 0)),
+        Vertex(position: ( 0.9, -0.9, 0)),
+        Vertex(position: (-0.9,  0.9, 0)),
+        Vertex(position: ( 0.9,  0.9, 0))
     ]
     
     let indices: [UInt16] = [
