@@ -15,6 +15,7 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
     @Published var textureP3: Float = 1 { didSet { shouldSetTextureColorData = true } }
     @Published var textureP4: Float = 1 { didSet { shouldSetTextureColorData = true } }
     var shouldSetTextureColorData = true
+    var usingOriginalMaterial = true
     @Published var fragmentP1: Float = 1
     @Published var fragmentP2: Float = 1
     @Published var fragmentPr: Float = 1
@@ -22,7 +23,7 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
     @Published var fragmentPb: Float = 1
     var material: Material
     let plane = Plane()
-    var previousFrame: MTLTexture?
+    var previousFrame: MTLTexture
     
     init(device: MTLDevice, metalView: MTKView) {
         self.device = device
@@ -34,23 +35,33 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
                                                    vertexDescriptor: vertexDescriptor)
         samplerState = Renderer.makeSamplerState(device: device)
         material = Renderer.makeMaterial(device: device)
-        let frameTextureDescriptor = Renderer.makeTextureDescriptor(width: 1200, height: 1200)
-        previousFrame = device.makeTexture(descriptor: frameTextureDescriptor)
+        let frameTextureDescriptor = Renderer.makeFrameTextureDescriptor()
+        previousFrame = device.makeTexture(descriptor: frameTextureDescriptor)!
     }
     
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
     }
     
-    static func makeTextureDescriptor(width: Int, height: Int) -> MTLTextureDescriptor {
+    
+    static func makeMaterialTextureDescriptor() -> MTLTextureDescriptor {
         let textureDescriptor = MTLTextureDescriptor()
-        textureDescriptor.width = width
-        textureDescriptor.height = height
+        textureDescriptor.width = 300
+        textureDescriptor.height = 300
         textureDescriptor.pixelFormat = .bgra8Unorm
         return textureDescriptor
     }
     
+    static func makeFrameTextureDescriptor() -> MTLTextureDescriptor {
+        let textureDescriptor = MTLTextureDescriptor.texture2DDescriptor(
+            pixelFormat: .bgra8Unorm, width: 1200, height: 1200, mipmapped: false
+        )
+        textureDescriptor.usage = [.renderTarget, .shaderWrite, .shaderRead]
+        textureDescriptor.storageMode = .private
+        return textureDescriptor
+    }
+    
     static func makeMaterial(device: MTLDevice) -> Material {
-        let textureDescriptor = Renderer.makeTextureDescriptor(width: 300, height: 300)
+        let textureDescriptor = Renderer.makeMaterialTextureDescriptor()
         let texture = device.makeTexture(descriptor: textureDescriptor)
         let material = Material(texture: texture)
         return material
@@ -153,6 +164,25 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
         blitEncoder.endEncoding()
     }
     
+    func storePreviousFrame(drawable: CAMetalDrawable, commandBuffer: MTLCommandBuffer) {
+        guard let blitEncoder = commandBuffer.makeBlitCommandEncoder() else {
+            fatalError("Failed to make blit command encoder")
+        }
+        
+        blitEncoder.copy(from: drawable.texture,
+                         sourceSlice: 0,
+                         sourceLevel: 0,
+                         sourceOrigin: MTLOrigin(x: 0, y: 0, z: 0),
+                         sourceSize: MTLSize(width: drawable.texture.width,
+                                             height: drawable.texture.height,
+                                            depth: 1),
+                         to: previousFrame,
+                         destinationSlice: 0,
+                         destinationLevel: 0,
+                         destinationOrigin: MTLOrigin(x: 0, y: 0, z: 0))
+        blitEncoder.endEncoding()
+    }
+    
     func draw(in view: MTKView) {
         guard let drawable = view.currentDrawable,
               let renderPassDescriptor = view.currentRenderPassDescriptor,
@@ -163,6 +193,7 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
         if shouldSetTextureColorData {
             setTextureColorData(commandBuffer: commandBuffer)
             shouldSetTextureColorData = false
+            usingOriginalMaterial = true
         }
         
         guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {
@@ -174,7 +205,8 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
                                                 fragmentP2: UInt8(fragmentP2),
                                                 fragmentPr: UInt8(fragmentPr),
                                                 fragmentPg: UInt8(fragmentPg),
-                                                fragmentPb: UInt8(fragmentPb))
+                                                fragmentPb: UInt8(fragmentPb),
+                                                usingOriginalMaterial: usingOriginalMaterial)
         
         renderEncoder.setFragmentSamplerState(samplerState, index: 0)
         renderEncoder.setRenderPipelineState(pipelineState)
@@ -182,9 +214,11 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
         renderEncoder.setFragmentBytes(&fragmentUniforms, length: MemoryLayout<FragmentUniforms>.size, index: 0)
         drawPlane(renderEncoder: renderEncoder)
         renderEncoder.endEncoding()
+        
+        storePreviousFrame(drawable: drawable, commandBuffer: commandBuffer)
+        
         commandBuffer.present(drawable)
         commandBuffer.commit()
-        // TODO: Copy the contents of the render target to previousFrame texture
     }
     
     func drawPlane(renderEncoder: MTLRenderCommandEncoder) {
@@ -195,7 +229,12 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
                                             length: plane.indices.count * MemoryLayout<UInt16>.size,
                                             options: [])!
         
-        renderEncoder.setFragmentTexture(material.texture, index: 0)
+        if usingOriginalMaterial {
+            renderEncoder.setFragmentTexture(material.texture, index: 0)
+            usingOriginalMaterial = false
+        } else {
+            renderEncoder.setFragmentTexture(previousFrame, index: 0)
+        }
         renderEncoder.setVertexBuffer(vertexBuffer, offset: 0, index: 0)
         renderEncoder.drawIndexedPrimitives(type: .triangle,
                                             indexCount: plane.indices.count,
@@ -238,4 +277,5 @@ struct FragmentUniforms {
     var fragmentPr: UInt8
     var fragmentPg: UInt8
     var fragmentPb: UInt8
+    var usingOriginalMaterial: Bool
 }

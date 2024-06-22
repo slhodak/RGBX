@@ -17,6 +17,7 @@ struct RGBXApp: App {
         metalView = MTKView()
         metalView.device = device
         metalView.colorPixelFormat = .bgra8Unorm
+        metalView.framebufferOnly = false
         renderer = Renderer(device: device, metalView: metalView)
         metalView.delegate = renderer
     }
