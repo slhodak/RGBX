@@ -18,6 +18,9 @@ struct VertexOut {
 struct FragmentUniforms {
     uchar fragmentP1;
     uchar fragmentP2;
+    uchar fragmentPr;
+    uchar fragmentPg;
+    uchar fragmentPb;
 };
 
 vertex VertexOut vertex_main(VertexIn v_in [[stage_in]],
@@ -34,26 +37,18 @@ fragment float4 fragment_main(VertexOut frag_in [[stage_in]],
     //int totalFragments = renderTarget.get_width() * renderTarget.get_height();
     int n = (frag_in.position.y * renderTarget.get_width()) + frag_in.position.x;
     
-    uchar r = 0b00000000;
-    uchar g = 0b00000000;
-    uchar b = 0b00000000;
+    uchar r = uniforms.fragmentPr * n;
+    uchar g = uniforms.fragmentPg * n;
+    uchar b = uniforms.fragmentPb * n;
     
     if (n % uniforms.fragmentP1 == 0) {
-        r = UCHAR_MAX;
-        g = UCHAR_MAX;
-        b = UCHAR_MAX;
+        r = r >> uniforms.fragmentPr;
+        g = g >> uniforms.fragmentPg;
+        b = b >> uniforms.fragmentPb;
     } else if (n % uniforms.fragmentP2 == 0) {
-        r = UCHAR_MAX;
-        g = 0b0;
-        b = 0b0;
-    } else if (n % 5 == 0) {
-        r = 0b0;
-        g = UCHAR_MAX;
-        b = 0b0;
-    } else if (n % 4 == 0) {
-        r = 0b0;
-        g = 0b0;
-        b = UCHAR_MAX;
+        r = r << uniforms.fragmentPr;
+        g = g << uniforms.fragmentPg;
+        b = b << uniforms.fragmentPb;
     }
     
     return float4(float(r)/UCHAR_MAX, float(g)/UCHAR_MAX, float(b)/UCHAR_MAX, 1);

@@ -13,8 +13,9 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
     @Published var textureScale: Float = 1
     @Published var textureP1: Float = 1
     @Published var textureP2: Float = 1
-    @Published var textureP3: Float = 1
-    @Published var textureP4: Float = 1
+    @Published var texturePr: Float = 1
+    @Published var texturePg: Float = 1
+    @Published var texturePb: Float = 1
     var material: Material
     let plane = Plane()
     var viewportSize: (Float, Float) = (800, 800)
@@ -106,7 +107,11 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
 //        logger.log("renderTargetSize",
 //                   "Render target size: \(drawable.texture.width)x\(drawable.texture.height)")
         var vertexUniforms = VertexUniforms(textureScale: simd_float2(textureScale, textureScale))
-        var fragmentUniforms = FragmentUniforms(fragmentP1: UInt8(textureP1), fragmentP2: UInt8(textureP2))
+        var fragmentUniforms = FragmentUniforms(fragmentP1: UInt8(textureP1),
+                                                fragmentP2: UInt8(textureP2),
+                                                fragmentPr: UInt8(texturePr),
+                                                fragmentPg: UInt8(texturePg),
+                                                fragmentPb: UInt8(texturePb))
         
         renderEncoder.setFragmentSamplerState(samplerState, index: 0)
         renderEncoder.setRenderPipelineState(pipelineState)
@@ -166,8 +171,10 @@ struct Material {
 struct FragmentUniforms {
     var fragmentP1: UInt8
     var fragmentP2: UInt8
+    var fragmentPr: UInt8
+    var fragmentPg: UInt8
+    var fragmentPb: UInt8
 }
-
 
 class DebouncedLogger {
     private var lastLogged = [String: TimeInterval]()
