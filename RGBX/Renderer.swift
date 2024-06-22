@@ -18,7 +18,7 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
     @Published var texturePb: Float = 1
     var material: Material
     let plane = Plane()
-    var viewportSize: (Float, Float) = (800, 800)
+    var previousFrame: MTLTexture?
     
     init(device: MTLDevice, metalView: MTKView) {
         self.device = device
@@ -31,6 +31,7 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
         samplerState = Renderer.makeSamplerState(device: device)
         textureDescriptor = Renderer.makeTextureDescriptor()
         material = Renderer.makeMaterial(device: device, textureDescriptor: textureDescriptor)
+        previousFrame = device.makeTexture(descriptor: textureDescriptor)
     }
     
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
@@ -121,6 +122,7 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
         renderEncoder.endEncoding()
         commandBuffer.present(drawable)
         commandBuffer.commit()
+        // TODO: Copy the contents of the render target to previousFrame texture
     }
     
     func drawPlane(renderEncoder: MTLRenderCommandEncoder) {
@@ -174,27 +176,4 @@ struct FragmentUniforms {
     var fragmentPr: UInt8
     var fragmentPg: UInt8
     var fragmentPb: UInt8
-}
-
-class DebouncedLogger {
-    private var lastLogged = [String: TimeInterval]()
-    private let debounceInterval: TimeInterval
-    
-    init(debounceInterval: TimeInterval = 5.0) {
-        self.debounceInterval = debounceInterval
-    }
-    
-    func log(_ type: String, _ message: String) {
-        let lastLogTime = lastLogged[type]
-        let currentTime = CACurrentMediaTime()
-        
-        if lastLogTime != nil {
-            if currentTime - lastLogTime! <= debounceInterval {
-                return
-            }
-        }
-        
-        print(message)
-        lastLogged[type] = currentTime
-    }
 }
