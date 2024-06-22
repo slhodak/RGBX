@@ -24,13 +24,14 @@ class MetalViewController: NSViewController {
     }
     
     required init?(coder: NSCoder) {
-        fatalError("init(codeer:) has not been implemented")
+        fatalError("init(coder:) has not been implemented")
     }
     
     override func viewDidLoad() {
         super.viewDidLoad()
         view.addSubview(metalView)
         metalView.frame = view.bounds
+        print("Metal view bounds: \(view.bounds)")
         metalView.autoresizingMask = [.width, .height]
     }
 }

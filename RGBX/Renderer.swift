@@ -2,6 +2,7 @@ import MetalKit
 import simd
 
 class Renderer: NSObject, MTKViewDelegate, ObservableObject {
+    let logger = DebouncedLogger()
     var device: MTLDevice
     var view: MTKView
     var commandQueue: MTLCommandQueue
@@ -16,6 +17,7 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
     @Published var textureP4: Float = 1
     var material: Material
     let plane = Plane()
+    var viewportSize: (Float, Float) = (800, 800)
     
     init(device: MTLDevice, metalView: MTKView) {
         self.device = device
@@ -35,8 +37,8 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
     
     static func makeTextureDescriptor() -> MTLTextureDescriptor {
         let textureDescriptor = MTLTextureDescriptor()
-        textureDescriptor.width = 800
-        textureDescriptor.height = 800
+        textureDescriptor.width = 1200
+        textureDescriptor.height = 1200
         textureDescriptor.pixelFormat = .bgra8Unorm
         return textureDescriptor
     }
@@ -101,11 +103,18 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
             return
         }
         
+        logger.log("renderTargetSize",
+                   "Render target size: \(drawable.texture.width)x\(drawable.texture.height)")
         var vertexUniforms = VertexUniforms(textureScale: simd_float2(textureScale, textureScale))
+        var fragmentUniforms = FragmentUniforms(
+            drawableHeight: drawable.texture.height,
+            drawableWidth: drawable.texture.width
+        )
         
         renderEncoder.setFragmentSamplerState(samplerState, index: 0)
         renderEncoder.setRenderPipelineState(pipelineState)
         renderEncoder.setVertexBytes(&vertexUniforms, length: MemoryLayout<VertexUniforms>.size, index: 1)
+        renderEncoder.setFragmentBytes(&fragmentUniforms, length: MemoryLayout<FragmentUniforms>.size, index: 0)
         drawPlane(renderEncoder: renderEncoder)
         renderEncoder.endEncoding()
         commandBuffer.present(drawable)
@@ -155,4 +164,33 @@ struct Plane {
 
 struct Material {
     var texture: MTLTexture?
+}
+
+struct FragmentUniforms {
+    var drawableHeight: Int
+    var drawableWidth: Int
+}
+
+
+class DebouncedLogger {
+    private var lastLogged = [String: TimeInterval]()
+    private let debounceInterval: TimeInterval
+    
+    init(debounceInterval: TimeInterval = 5.0) {
+        self.debounceInterval = debounceInterval
+    }
+    
+    func log(_ type: String, _ message: String) {
+        let lastLogTime = lastLogged[type]
+        let currentTime = CACurrentMediaTime()
+        
+        if lastLogTime != nil {
+            if currentTime - lastLogTime! <= debounceInterval {
+                return
+            }
+        }
+        
+        print(message)
+        lastLogged[type] = currentTime
+    }
 }
