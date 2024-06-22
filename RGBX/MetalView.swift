@@ -31,7 +31,6 @@ class MetalViewController: NSViewController {
         super.viewDidLoad()
         view.addSubview(metalView)
         metalView.frame = view.bounds
-        print("Metal view bounds: \(view.bounds)")
         metalView.autoresizingMask = [.width, .height]
     }
 }
