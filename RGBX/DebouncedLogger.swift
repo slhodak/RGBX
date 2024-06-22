@@ -23,3 +23,28 @@ class DebouncedLogger {
         lastLogged[type] = currentTime
     }
 }
+
+class Throttler {
+    static let shared = Throttler()
+    
+    private var intervals: [String: CFTimeInterval] = [:]
+    private var lastExecutionTimes: [String: CFTimeInterval] = [:]
+    
+    private init() {}
+    
+    func run(forKey key: String, at interval: CFTimeInterval = 1, block: @escaping () -> Void) {
+        if self.intervals[key] == nil  {
+            self.intervals[key] = interval
+            self.lastExecutionTimes[key] = 0
+        }
+        
+        let currentTime = CACurrentMediaTime()
+        if let lastExecutionTime = self.lastExecutionTimes[key],
+           currentTime - lastExecutionTime < interval {
+            return
+        }
+        
+        self.lastExecutionTimes[key] = currentTime
+        block()
+    }
+}

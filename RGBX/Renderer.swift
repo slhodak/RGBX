@@ -10,12 +10,17 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
     var pipelineState: MTLRenderPipelineState
     var samplerState: MTLSamplerState
     var textureDescriptor: MTLTextureDescriptor
-    @Published var textureScale: Float = 1
-    @Published var textureP1: Float = 1
-    @Published var textureP2: Float = 1
-    @Published var texturePr: Float = 1
-    @Published var texturePg: Float = 1
-    @Published var texturePb: Float = 1
+    @Published var textureScale: Float = 1 { didSet { shouldSetTextureColorData = true } }
+    @Published var textureP1: Float = 1 { didSet { shouldSetTextureColorData = true } }
+    @Published var textureP2: Float = 1 { didSet { shouldSetTextureColorData = true } }
+    @Published var textureP3: Float = 1 { didSet { shouldSetTextureColorData = true } }
+    @Published var textureP4: Float = 1 { didSet { shouldSetTextureColorData = true } }
+    var shouldSetTextureColorData = true
+    @Published var fragmentP1: Float = 1
+    @Published var fragmentP2: Float = 1
+    @Published var fragmentPr: Float = 1
+    @Published var fragmentPg: Float = 1
+    @Published var fragmentPb: Float = 1
     var material: Material
     let plane = Plane()
     var previousFrame: MTLTexture?
@@ -97,22 +102,80 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
         }
     }
     
+    func setTextureColorData(commandBuffer: MTLCommandBuffer) {
+        guard let blitEncoder: MTLBlitCommandEncoder = commandBuffer.makeBlitCommandEncoder() else {
+            fatalError("Failed to create blit encoder")
+        }
+        
+        let pixelCount = textureDescriptor.width * textureDescriptor.height
+        /// argb because byte order is bgra but my M1 is little-endian, so LSB goes first
+        let opaque: UInt32      = 0b11111111_00000000_00000000_00000000
+        var color: UInt32       = 0b00000000_00000000_00000000_00000000
+        let colorMask: UInt32   = 0b00000000_11111111_11111111_11111111
+        var colorData: [UInt32] = []
+        
+        for i in 0..<pixelCount {
+            colorData.append(color)
+            if i % Int(textureP3) == 0 {
+                color = color << UInt32(textureP1)
+            } else if i % Int(textureP4) == 0 {
+                color = color >> UInt32(textureP2)
+            }
+            color = (color + 1) % colorMask
+            color = color | opaque
+        }
+        
+        let bufferSize = pixelCount * MemoryLayout<UInt32>.size
+        let buffer = colorData.withUnsafeBytes { bytes in
+            return device.makeBuffer(bytes: bytes.baseAddress!,
+                                     length: bufferSize,
+                                     options: [])
+        }
+        
+        guard let buffer = buffer else {
+            fatalError("Failed to create texture color data buffer")
+        }
+        
+        let bytesPerRow = textureDescriptor.width * MemoryLayout<UInt32>.size
+        blitEncoder.copy(from: buffer,
+                         sourceOffset: 0,
+                         sourceBytesPerRow: bytesPerRow,
+                         sourceBytesPerImage: bufferSize,
+                         sourceSize: MTLSize(width: textureDescriptor.width,
+                                             height: textureDescriptor.height,
+                                             depth: 1),
+                         to: material.texture!,
+                         destinationSlice: 0, destinationLevel: 0,
+                         destinationOrigin: MTLOrigin(x: 0, y: 0, z: 0)
+        )
+        blitEncoder.endEncoding()
+    }
+    
     func draw(in view: MTKView) {
         guard let drawable = view.currentDrawable,
               let renderPassDescriptor = view.currentRenderPassDescriptor,
-              let commandBuffer = commandQueue.makeCommandBuffer(),
-              let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {
+              let commandBuffer = commandQueue.makeCommandBuffer() else {
             return
         }
         
 //        logger.log("renderTargetSize",
 //                   "Render target size: \(drawable.texture.width)x\(drawable.texture.height)")
+        
+        if shouldSetTextureColorData {
+            setTextureColorData(commandBuffer: commandBuffer)
+            shouldSetTextureColorData = false
+        }
+        
+        guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {
+            return
+        }
+        
         var vertexUniforms = VertexUniforms(textureScale: simd_float2(textureScale, textureScale))
-        var fragmentUniforms = FragmentUniforms(fragmentP1: UInt8(textureP1),
-                                                fragmentP2: UInt8(textureP2),
-                                                fragmentPr: UInt8(texturePr),
-                                                fragmentPg: UInt8(texturePg),
-                                                fragmentPb: UInt8(texturePb))
+        var fragmentUniforms = FragmentUniforms(fragmentP1: UInt8(fragmentP1),
+                                                fragmentP2: UInt8(fragmentP2),
+                                                fragmentPr: UInt8(fragmentPr),
+                                                fragmentPg: UInt8(fragmentPg),
+                                                fragmentPb: UInt8(fragmentPb))
         
         renderEncoder.setFragmentSamplerState(samplerState, index: 0)
         renderEncoder.setRenderPipelineState(pipelineState)

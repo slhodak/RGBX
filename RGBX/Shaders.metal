@@ -32,24 +32,30 @@ vertex VertexOut vertex_main(VertexIn v_in [[stage_in]],
 };
 
 fragment float4 fragment_main(VertexOut frag_in [[stage_in]],
-                              texture2d<float> renderTarget [[texture(0)]],
-                              constant FragmentUniforms &uniforms [[buffer(0)]]) {
-    //int totalFragments = renderTarget.get_width() * renderTarget.get_height();
-    int n = (frag_in.position.y * renderTarget.get_width()) + frag_in.position.x;
+                              texture2d<float, access::sample> texture [[texture(0)]],
+                              constant FragmentUniforms &uniforms [[buffer(0)]],
+                              sampler baseColorSampler [[sampler(0)]]) {
+    float3 baseColor = texture.sample(baseColorSampler, frag_in.texCoords).rgb;
+    return float4(baseColor, 1);
     
-    uchar r = uniforms.fragmentPr * n;
-    uchar g = uniforms.fragmentPg * n;
-    uchar b = uniforms.fragmentPb * n;
+//    int n = (frag_in.position.y * texture.get_width()) + frag_in.position.x;
+//    
+//    uchar r = baseColor.x * UCHAR_MAX;
+//    uchar g = baseColor.y * UCHAR_MAX;
+//    uchar b = baseColor.z * UCHAR_MAX;
     
-    if (n % uniforms.fragmentP1 == 0) {
-        r = r >> uniforms.fragmentPr;
-        g = g >> uniforms.fragmentPg;
-        b = b >> uniforms.fragmentPb;
-    } else if (n % uniforms.fragmentP2 == 0) {
-        r = r << uniforms.fragmentPr;
-        g = g << uniforms.fragmentPg;
-        b = b << uniforms.fragmentPb;
-    }
+//    if (n % uniforms.fragmentP1 == 0) {
+//        r = r >> uniforms.fragmentPr;
+//        g = g >> uniforms.fragmentPg;
+//        b = b >> uniforms.fragmentPb;
+//    }
+//    if (n % uniforms.fragmentP2 == 0) {
+//        r = r << uniforms.fragmentPr;
+//        g = g << uniforms.fragmentPg;
+//        b = b << uniforms.fragmentPb;
+//    }
     
-    return float4(float(r)/UCHAR_MAX, float(g)/UCHAR_MAX, float(b)/UCHAR_MAX, 1);
+//    return float4(float(r)/float(UCHAR_MAX),
+//                  float(g)/float(UCHAR_MAX),
+//                  float(b)/float(UCHAR_MAX), 1);
 };
