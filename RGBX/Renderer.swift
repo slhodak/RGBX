@@ -44,8 +44,8 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
     
     static func makeTextureDescriptor() -> MTLTextureDescriptor {
         let textureDescriptor = MTLTextureDescriptor()
-        textureDescriptor.width = 1200
-        textureDescriptor.height = 1200
+        textureDescriptor.width = 300
+        textureDescriptor.height = 300
         textureDescriptor.pixelFormat = .bgra8Unorm
         return textureDescriptor
     }
@@ -218,7 +218,7 @@ struct Vertex {
 struct Plane {
     let vertices: [Vertex] = [
         Vertex(position: (-1, -1, 0), texCoords: (0, 1)),
-        Vertex(position: ( 1, -1, 0), texCoords: (0, 1)),
+        Vertex(position: ( 1, -1, 0), texCoords: (1, 1)),
         Vertex(position: (-1,  1, 0), texCoords: (0, 0)),
         Vertex(position: ( 1,  1, 0), texCoords: (1, 0))
     ]
