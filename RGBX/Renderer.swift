@@ -35,8 +35,8 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
     
     static func makeTextureDescriptor() -> MTLTextureDescriptor {
         let textureDescriptor = MTLTextureDescriptor()
-        textureDescriptor.width = 256
-        textureDescriptor.height = 256
+        textureDescriptor.width = 800
+        textureDescriptor.height = 800
         textureDescriptor.pixelFormat = .bgra8Unorm
         return textureDescriptor
     }
@@ -93,65 +93,11 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
         }
     }
     
-    func setTextureColorData(commandBuffer: MTLCommandBuffer) {
-        guard let blitEncoder: MTLBlitCommandEncoder = commandBuffer.makeBlitCommandEncoder() else {
-            fatalError("Failed to create blit encoder")
-        }
-        
-        let pixelCount = textureDescriptor.width * textureDescriptor.height
-        /// argb because byte order is bgra but my M1 is little-endian, so LSB goes first
-        let opaque: UInt32      = 0b11111111_00000000_00000000_00000000
-        var color: UInt32       = 0b11111111_00000000_00000000_00000000
-        let colorMask: UInt32   = 0b00000000_11111111_11111111_11111111
-        var colorData: [UInt32] = []
-        
-        for i in 0..<pixelCount {
-            colorData.append(color)
-            if i % Int(textureP3) == 0 {
-                color = color << UInt32(textureP1)
-            } else if i % Int(textureP4) == 0 {
-                color = color >> UInt32(textureP2)
-            }
-            color = (color + 1) % colorMask
-            color = color | opaque
-        }
-        
-        let bufferSize = pixelCount * MemoryLayout<UInt32>.size
-        let buffer = colorData.withUnsafeBytes { bytes in
-            return device.makeBuffer(bytes: bytes.baseAddress!,
-                                     length: bufferSize,
-                                     options: [])
-        }
-        
-        guard let buffer = buffer else {
-            fatalError("Failed to create texture color data buffer")
-        }
-        
-        let bytesPerRow = textureDescriptor.width * MemoryLayout<UInt32>.size
-        blitEncoder.copy(from: buffer,
-                         sourceOffset: 0,
-                         sourceBytesPerRow: bytesPerRow,
-                         sourceBytesPerImage: bufferSize,
-                         sourceSize: MTLSize(width: textureDescriptor.width,
-                                             height: textureDescriptor.height,
-                                             depth: 1),
-                         to: material.texture!,
-                         destinationSlice: 0, destinationLevel: 0,
-                         destinationOrigin: MTLOrigin(x: 0, y: 0, z: 0)
-        )
-        blitEncoder.endEncoding()
-    }
-    
     func draw(in view: MTKView) {
         guard let drawable = view.currentDrawable,
               let renderPassDescriptor = view.currentRenderPassDescriptor,
-              let commandBuffer = commandQueue.makeCommandBuffer() else {
-            return
-        }
-        
-        setTextureColorData(commandBuffer: commandBuffer)
-    
-        guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {
+              let commandBuffer = commandQueue.makeCommandBuffer(),
+              let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {
             return
         }
         
@@ -195,10 +141,10 @@ struct Vertex {
 
 struct Plane {
     let vertices: [Vertex] = [
-        Vertex(position: (-0.9, -0.9, 0), texCoords: (0, 1)),
-        Vertex(position: ( 0.9, -0.9, 0), texCoords: (1, 1)),
-        Vertex(position: (-0.9,  0.9, 0), texCoords: (0, 0)),
-        Vertex(position: ( 0.9,  0.9, 0), texCoords: (1, 0))
+        Vertex(position: (-1, -1, 0), texCoords: (0, 0)),
+        Vertex(position: ( 1, -1, 0), texCoords: (0, 0)),
+        Vertex(position: (-1,  1, 0), texCoords: (0, 0)),
+        Vertex(position: ( 1,  1, 0), texCoords: (0, 0))
     ]
     
     let indices: [UInt16] = [
