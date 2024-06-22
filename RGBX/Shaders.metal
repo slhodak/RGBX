@@ -15,6 +15,10 @@ struct VertexOut {
     float2 texCoords;
 };
 
+struct FragmentUniforms {
+    float2 viewportSize;
+};
+
 vertex VertexOut vertex_main(VertexIn v_in [[stage_in]],
                              constant VertexUniforms &vertexUniforms [[buffer(1)]]) {
     VertexOut v_out;
@@ -25,24 +29,29 @@ vertex VertexOut vertex_main(VertexIn v_in [[stage_in]],
 
 fragment float4 fragment_main(VertexOut frag_in [[stage_in]],
                               texture2d<float> renderTarget [[texture(0)]]) {
-//    UInt32 opaque = 0b11111111_00000000_00000000_00000000
-//    var color: UInt32       = 0b11111111_00000000_00000000_00000000
-//    let colorMask: UInt32   = 0b00000000_11111111_11111111_11111111
-//    var colorData: [UInt32] = []
-//    
-//    for i in 0..<pixelCount {
-//        colorData.append(color)
-//        if i % Int(textureP3) == 0 {
-//            color = color << UInt32(textureP1)
-//        } else if i % Int(textureP4) == 0 {
-//            color = color >> UInt32(textureP2)
-//        }
-//        color = (color + 1) % colorMask
-//        color = color | opaque
-//    }
+    //    for i in 0..<pixelCount {
+    //        colorData.append(color)
+    //        if i % Int(textureP3) == 0 {
+    //            color = color << UInt32(textureP1)
+    //        } else if i % Int(textureP4) == 0 {
+    //            color = color >> UInt32(textureP2)
+    //        }
+    //        color = (color + 1) % colorMask
+    //        color = color | opaque
+    //    }
     
-    uint2 textureSize = uint2(renderTarget.get_width(), renderTarget.get_height());
-    float2 normalizedPos = frag_in.position.xy / float2(textureSize);
+    /// Get the pixel value based on xy and total size
+    // n = (row * rows) + column
+    // frag_in.position is viewport coordinate system
     
-    return float4(normalizedPos.x, normalizedPos.y, 0, 1);
+    uint totalPixels = renderTarget.get_width() * renderTarget.get_height();
+    
+    uint n = (frag_in.position.y * renderTarget.get_width()) + frag_in.position.x;
+    uint normalizedN = n / totalPixels;
+    uint color = normalizedN % 0xFF;
+    
+    return float4(frag_in.position.y / renderTarget.get_width(),
+                  color,
+                  color,
+                  1);
 };

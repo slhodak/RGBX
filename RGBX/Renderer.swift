@@ -141,10 +141,10 @@ struct Vertex {
 
 struct Plane {
     let vertices: [Vertex] = [
-        Vertex(position: (-1, -1, 0), texCoords: (0, 0)),
-        Vertex(position: ( 1, -1, 0), texCoords: (0, 0)),
+        Vertex(position: (-1, -1, 0), texCoords: (0, 1)),
+        Vertex(position: ( 1, -1, 0), texCoords: (0, 1)),
         Vertex(position: (-1,  1, 0), texCoords: (0, 0)),
-        Vertex(position: ( 1,  1, 0), texCoords: (0, 0))
+        Vertex(position: ( 1,  1, 0), texCoords: (1, 0))
     ]
     
     let indices: [UInt16] = [
