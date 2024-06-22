@@ -103,13 +103,10 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
             return
         }
         
-        logger.log("renderTargetSize",
-                   "Render target size: \(drawable.texture.width)x\(drawable.texture.height)")
+//        logger.log("renderTargetSize",
+//                   "Render target size: \(drawable.texture.width)x\(drawable.texture.height)")
         var vertexUniforms = VertexUniforms(textureScale: simd_float2(textureScale, textureScale))
-        var fragmentUniforms = FragmentUniforms(
-            drawableHeight: drawable.texture.height,
-            drawableWidth: drawable.texture.width
-        )
+        var fragmentUniforms = FragmentUniforms(fragmentP1: UInt8(textureP1), fragmentP2: UInt8(textureP2))
         
         renderEncoder.setFragmentSamplerState(samplerState, index: 0)
         renderEncoder.setRenderPipelineState(pipelineState)
@@ -167,8 +164,8 @@ struct Material {
 }
 
 struct FragmentUniforms {
-    var drawableHeight: Int
-    var drawableWidth: Int
+    var fragmentP1: UInt8
+    var fragmentP2: UInt8
 }
 
 
