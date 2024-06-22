@@ -9,7 +9,6 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
     var vertexDescriptor: MTLVertexDescriptor
     var pipelineState: MTLRenderPipelineState
     var samplerState: MTLSamplerState
-    var textureDescriptor: MTLTextureDescriptor
     @Published var textureScale: Float = 1 { didSet { shouldSetTextureColorData = true } }
     @Published var textureP1: Float = 1 { didSet { shouldSetTextureColorData = true } }
     @Published var textureP2: Float = 1 { didSet { shouldSetTextureColorData = true } }
@@ -34,23 +33,24 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
                                                    view: metalView,
                                                    vertexDescriptor: vertexDescriptor)
         samplerState = Renderer.makeSamplerState(device: device)
-        textureDescriptor = Renderer.makeTextureDescriptor()
-        material = Renderer.makeMaterial(device: device, textureDescriptor: textureDescriptor)
-        previousFrame = device.makeTexture(descriptor: textureDescriptor)
+        material = Renderer.makeMaterial(device: device)
+        let frameTextureDescriptor = Renderer.makeTextureDescriptor(width: 1200, height: 1200)
+        previousFrame = device.makeTexture(descriptor: frameTextureDescriptor)
     }
     
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
     }
     
-    static func makeTextureDescriptor() -> MTLTextureDescriptor {
+    static func makeTextureDescriptor(width: Int, height: Int) -> MTLTextureDescriptor {
         let textureDescriptor = MTLTextureDescriptor()
-        textureDescriptor.width = 300
-        textureDescriptor.height = 300
+        textureDescriptor.width = width
+        textureDescriptor.height = height
         textureDescriptor.pixelFormat = .bgra8Unorm
         return textureDescriptor
     }
     
-    static func makeMaterial(device: MTLDevice, textureDescriptor: MTLTextureDescriptor) -> Material {
+    static func makeMaterial(device: MTLDevice) -> Material {
+        let textureDescriptor = Renderer.makeTextureDescriptor(width: 300, height: 300)
         let texture = device.makeTexture(descriptor: textureDescriptor)
         let material = Material(texture: texture)
         return material
@@ -107,7 +107,9 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
             fatalError("Failed to create blit encoder")
         }
         
-        let pixelCount = textureDescriptor.width * textureDescriptor.height
+        guard let texture = material.texture else { return }
+        
+        let pixelCount = texture.width * texture.height
         /// argb because byte order is bgra but my M1 is little-endian, so LSB goes first
         let opaque: UInt32      = 0b11111111_00000000_00000000_00000000
         var color: UInt32       = 0b00000000_00000000_00000000_00000000
@@ -136,13 +138,13 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
             fatalError("Failed to create texture color data buffer")
         }
         
-        let bytesPerRow = textureDescriptor.width * MemoryLayout<UInt32>.size
+        let bytesPerRow = texture.width * MemoryLayout<UInt32>.size
         blitEncoder.copy(from: buffer,
                          sourceOffset: 0,
                          sourceBytesPerRow: bytesPerRow,
                          sourceBytesPerImage: bufferSize,
-                         sourceSize: MTLSize(width: textureDescriptor.width,
-                                             height: textureDescriptor.height,
+                         sourceSize: MTLSize(width: texture.width,
+                                             height: texture.height,
                                              depth: 1),
                          to: material.texture!,
                          destinationSlice: 0, destinationLevel: 0,
