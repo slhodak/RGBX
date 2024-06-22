@@ -158,9 +158,6 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
             return
         }
         
-//        logger.log("renderTargetSize",
-//                   "Render target size: \(drawable.texture.width)x\(drawable.texture.height)")
-        
         if shouldSetTextureColorData {
             setTextureColorData(commandBuffer: commandBuffer)
             shouldSetTextureColorData = false
