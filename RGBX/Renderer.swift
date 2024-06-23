@@ -165,7 +165,7 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
         blitEncoder.endEncoding()
     }
     
-    func copyToDrawableAndFrameStore(source: MTLTexture, drawable: CAMetalDrawable, commandBuffer: MTLCommandBuffer) {
+    func copyToDrawable(source: MTLTexture, drawable: CAMetalDrawable, commandBuffer: MTLCommandBuffer) {
         guard let blitEncoder = commandBuffer.makeBlitCommandEncoder() else {
             fatalError("Failed to make blit command encoder")
         }
@@ -178,18 +178,6 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
                                              height: drawable.texture.height,
                                              depth: 1),
                          to: drawable.texture,
-                         destinationSlice: 0,
-                         destinationLevel: 0,
-                         destinationOrigin: MTLOrigin(x: 0, y: 0, z: 0))
-        
-        blitEncoder.copy(from: source,
-                         sourceSlice: 0,
-                         sourceLevel: 0,
-                         sourceOrigin: MTLOrigin(x: 0, y: 0, z: 0),
-                         sourceSize: MTLSize(width: source.width,
-                                             height: source.height,
-                                             depth: 1),
-                         to: previousFrame,
                          destinationSlice: 0,
                          destinationLevel: 0,
                          destinationOrigin: MTLOrigin(x: 0, y: 0, z: 0))
@@ -241,7 +229,7 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
         drawPlane(renderEncoder: renderEncoder)
         renderEncoder.endEncoding()
         
-        copyToDrawableAndFrameStore(source: previousFrame, drawable: drawable, commandBuffer: commandBuffer)
+        copyToDrawable(source: previousFrame, drawable: drawable, commandBuffer: commandBuffer)
         
         commandBuffer.present(drawable)
         commandBuffer.commit()
