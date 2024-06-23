@@ -30,16 +30,42 @@ struct AlgorithmParams: View {
         Text("Fragment Parameters - GPU")
         switch renderer.fragmentAlgorithm {
         case .fragment_algo_a:
-            LabeledSlider(name: "Fragment 1", value: $renderer.fragmentP1, min: 1, max: 1200*1200)
-            LabeledSlider(name: "Fragment 2", value: $renderer.fragmentP2, min: 1, max: 1200*1200)
-            LabeledSlider(name: "Fragment 3", value: $renderer.fragmentP3, min: 1, max: 1200*1200)
-            LabeledSlider(name: "Param R", value: $renderer.fragmentPr, min: 0, max: 7, step: 1)
-            LabeledSlider(name: "Param G", value: $renderer.fragmentPg, min: 0, max: 7, step: 1)
-            LabeledSlider(name: "Param B", value: $renderer.fragmentPb, min: 0, max: 7, step: 1)
+            LabeledSlider(name: "Fragment 1",
+                          value: $renderer.editableFragmentUniformsA.fragmentP1,
+                          min: 1,
+                          max: 1200*1200)
+            LabeledSlider(name: "Fragment 2",
+                          value: $renderer.editableFragmentUniformsA.fragmentP2,
+                          min: 1,
+                          max: 1200*1200)
+            LabeledSlider(name: "Fragment 3",
+                          value: $renderer.editableFragmentUniformsA.fragmentP3,
+                          min: 1,
+                          max: 1200*1200)
+            LabeledSlider(name: "Param R",
+                          value: $renderer.editableFragmentUniformsA.fragmentPr,
+                          min: 0,
+                          max: 7,
+                          step: 1)
+            LabeledSlider(name: "Param G",
+                          value: $renderer.editableFragmentUniformsA.fragmentPg,
+                          min: 0,
+                          max: 7,
+                          step: 1)
+            LabeledSlider(name: "Param B",
+                          value: $renderer.editableFragmentUniformsA.fragmentPb,
+                          min: 0,
+                          max: 7,
+                          step: 1)
+        
         case .fragment_algo_b:
-            LabeledSlider(name: "Param X", value: $renderer.fragmentX, min: 0, max: 7, step: 1)
+            LabeledSlider(name: "Param X",
+                          value: $renderer.editableFragmentUniformsB.fragmentX,
+                          min: 0,
+                          max: 7,
+                          step: 1)
         }
-
+        
         Text("Texture Parameters - CPU")
         LabeledSlider(name: "Texture Scale", value: $renderer.textureScale, min: 0.001, max: 2.0)
         LabeledSlider(name: "Texture 1", value: $renderer.textureP1, min: 1, max: 32, step: 1)

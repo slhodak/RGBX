@@ -17,15 +17,10 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
     var shouldSetTextureColorData = true
     var usingOriginalMaterial = true
     @Published var fragmentAlgorithm: FragmentAlgorithm = .fragment_algo_a
+    @Published var editableFragmentUniformsA = EditableFragmentUniformsA()
+    @Published var editableFragmentUniformsB = EditableFragmentUniformsB()
     var fragmentUniformsA: FragmentUniformsA = FragmentUniformsA()
     var fragmentUniformsB: FragmentUniformsB = FragmentUniformsB()
-    @Published var fragmentP1: Float = 1
-    @Published var fragmentP2: Float = 1
-    @Published var fragmentP3: Float = 1
-    @Published var fragmentX: Float = 1
-    @Published var fragmentPr: Float = 1
-    @Published var fragmentPg: Float = 1
-    @Published var fragmentPb: Float = 1
     var material: Material
     let plane = Plane()
     var previousFrame: MTLTexture
@@ -195,31 +190,17 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
         blitEncoder.endEncoding()
     }
     
-    func setFragmentUniforms() {
-        switch fragmentAlgorithm {
-        case .fragment_algo_a:
-            fragmentUniformsA = FragmentUniformsA(fragmentP1: Int32(fragmentP1),
-                                                  fragmentP2: Int32(fragmentP2),
-                                                  fragmentP3: Int32(fragmentP3),
-                                                  fragmentPr: UInt8(fragmentPr),
-                                                  fragmentPg: UInt8(fragmentPg),
-                                                  fragmentPb: UInt8(fragmentPb),
-                                                  usingOriginalMaterial: usingOriginalMaterial)
-        case .fragment_algo_b:
-            fragmentUniformsB = FragmentUniformsB(fragmentX: UInt8(fragmentX),
-                                                  usingOriginalMaterial: usingOriginalMaterial)
-        }
-    }
-    
     func setFragmentBytes(on renderEncoder: MTLRenderCommandEncoder) {
         switch fragmentAlgorithm {
         case .fragment_algo_a:
+            fragmentUniformsA = editableFragmentUniformsA.asStaticStruct()
             renderEncoder.setFragmentBytes(&fragmentUniformsA,
-                                           length: MemoryLayout<FragmentUniformsA>.size,
+                                           length: MemoryLayout<FragmentUniformsA>.stride,
                                            index: 0)
         case .fragment_algo_b:
+            fragmentUniformsB = editableFragmentUniformsB.asStaticStruct()
             renderEncoder.setFragmentBytes(&fragmentUniformsB,
-                                           length: MemoryLayout<FragmentUniformsB>.size,
+                                           length: MemoryLayout<FragmentUniformsB>.stride,
                                            index: 0)
         }
     }
@@ -249,7 +230,9 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
         var vertexUniforms = VertexUniforms(textureScale: simd_float2(textureScale, textureScale),
                                             shouldResize: usingOriginalMaterial ? 1 : 0)
         
-        setFragmentUniforms()
+        editableFragmentUniformsA.usingOriginalMaterial = usingOriginalMaterial
+        editableFragmentUniformsB.usingOriginalMaterial = usingOriginalMaterial
+        
         renderEncoder.setFragmentSamplerState(samplerState, index: 0)
         renderEncoder.setRenderPipelineState(pipelineStates[fragmentAlgorithm]!)
         renderEncoder.setVertexBytes(&vertexUniforms, length: MemoryLayout<VertexUniforms>.size, index: 1)
@@ -323,11 +306,53 @@ struct FragmentUniformsA {
     var fragmentPg: UInt8 = 1
     var fragmentPb: UInt8 = 1
     var usingOriginalMaterial: Bool = true
+    
+    init() {}
+    
+    init(from editable: EditableFragmentUniformsA) {
+        self.fragmentP1 = Int32(editable.fragmentP1)
+        self.fragmentP2 = Int32(editable.fragmentP2)
+        self.fragmentP3 = Int32(editable.fragmentP3)
+        self.fragmentPr = UInt8(editable.fragmentPr)
+        self.fragmentPg = UInt8(editable.fragmentPg)
+        self.fragmentPb = UInt8(editable.fragmentPb)
+        self.usingOriginalMaterial = editable.usingOriginalMaterial
+    }
+}
+
+struct EditableFragmentUniformsA {
+    var fragmentP1: Float = 1
+    var fragmentP2: Float = 1
+    var fragmentP3: Float = 1
+    var fragmentPr: Float = 1
+    var fragmentPg: Float = 1
+    var fragmentPb: Float = 1
+    var usingOriginalMaterial: Bool = true
+    
+    func asStaticStruct() -> FragmentUniformsA {
+        return FragmentUniformsA(from: self)
+    }
 }
 
 struct FragmentUniformsB {
     var fragmentX: UInt8 = 1
     var usingOriginalMaterial: Bool = true
+    
+    init() {}
+    
+    init(from editable: EditableFragmentUniformsB) {
+        self.fragmentX = UInt8(editable.fragmentX)
+        self.usingOriginalMaterial = editable.usingOriginalMaterial
+    }
+}
+
+struct EditableFragmentUniformsB {
+    var fragmentX: Float = 1
+    var usingOriginalMaterial: Bool = true
+    
+    func asStaticStruct() -> FragmentUniformsB {
+        return FragmentUniformsB(from: self)
+    }
 }
 
 enum FragmentAlgorithm: String, CaseIterable {
