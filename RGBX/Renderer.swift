@@ -16,12 +16,13 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
     @Published var textureP4: Float = 1 { didSet { shouldSetTextureColorData = true } }
     var shouldSetTextureColorData = true
     var usingOriginalMaterial = true
-    var fragmentAlgorithm: FragmentAlgorithm = .fragment_algo_a
+    @Published var fragmentAlgorithm: FragmentAlgorithm = .fragment_algo_a
     var fragmentUniformsA: FragmentUniformsA = FragmentUniformsA()
     var fragmentUniformsB: FragmentUniformsB = FragmentUniformsB()
     @Published var fragmentP1: Float = 1
     @Published var fragmentP2: Float = 1
     @Published var fragmentP3: Float = 1
+    @Published var fragmentX: Float = 1
     @Published var fragmentPr: Float = 1
     @Published var fragmentPg: Float = 1
     @Published var fragmentPb: Float = 1
@@ -205,7 +206,8 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
                                                   fragmentPb: UInt8(fragmentPb),
                                                   usingOriginalMaterial: usingOriginalMaterial)
         case .fragment_algo_b:
-            fragmentUniformsB = FragmentUniformsB(usingOriginalMaterial: usingOriginalMaterial)
+            fragmentUniformsB = FragmentUniformsB(fragmentX: UInt8(fragmentX),
+                                                  usingOriginalMaterial: usingOriginalMaterial)
         }
     }
     
@@ -324,10 +326,11 @@ struct FragmentUniformsA {
 }
 
 struct FragmentUniformsB {
+    var fragmentX: UInt8 = 1
     var usingOriginalMaterial: Bool = true
 }
 
-enum FragmentAlgorithm: String {
+enum FragmentAlgorithm: String, CaseIterable {
     case fragment_algo_a
     case fragment_algo_b
 }

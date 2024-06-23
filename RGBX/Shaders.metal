@@ -27,6 +27,7 @@ struct FragmentUniformsA {
 };
 
 struct FragmentUniformsB {
+    uchar fragmentX;
     bool usingOriginalMaterial;
 };
 
@@ -98,9 +99,9 @@ fragment float4 fragment_algo_b(VertexOut frag_in [[stage_in]],
     uchar g = baseColor.y * UCHAR_MAX;
     uchar b = baseColor.z * UCHAR_MAX;
     
-    r = (r + 1) % UCHAR_MAX;
-    g = (g + 1) % UCHAR_MAX;
-    b = (b + 1) % UCHAR_MAX;
+    r = (r + uniforms.fragmentX) % UCHAR_MAX;
+    g = (g + uniforms.fragmentX) % UCHAR_MAX;
+    b = (b + uniforms.fragmentX) % UCHAR_MAX;
 
     return float4(float(r)/float(UCHAR_MAX),
                   float(g)/float(UCHAR_MAX),
