@@ -73,8 +73,8 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
     static func makeSamplerState(device: MTLDevice) -> MTLSamplerState {
         let samplerDescriptor = MTLSamplerDescriptor()
         samplerDescriptor.normalizedCoordinates = true
-        samplerDescriptor.minFilter = .nearest
-        samplerDescriptor.magFilter = .nearest
+        samplerDescriptor.minFilter = .linear
+        samplerDescriptor.magFilter = .linear
         //samplerDescriptor.mipFilter = .linear
         samplerDescriptor.rAddressMode = .repeat
         samplerDescriptor.sAddressMode = .repeat
