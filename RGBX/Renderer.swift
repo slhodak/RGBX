@@ -13,12 +13,13 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
     @Published var minMagFilter: MTLSamplerMinMagFilter = .linear { didSet { shouldRemakeSamplerState = true } }
     var shouldSetTextureColorData = true
     var shouldRemakeSamplerState = false
-    var usingOriginalMaterial = true
+    var useOriginalMaterial = true
     @Published var fragmentAlgorithm: FragmentAlgorithm = .fragment_algo_a
     @Published var editableFragmentUniformsA = EditableFragmentUniformsA()
     @Published var editableFragmentUniformsB = EditableFragmentUniformsB()
     var fragmentUniformsA: FragmentUniformsA = FragmentUniformsA()
     var fragmentUniformsB: FragmentUniformsB = FragmentUniformsB()
+    var vertexUniforms: VertexUniforms = VertexUniforms()
     var material: Material
     let plane = Plane()
     var previousFrame: MTLTexture
@@ -191,7 +192,16 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
         blitEncoder.endEncoding()
     }
     
+    func setVertexUniforms() {
+        vertexUniforms = VertexUniforms(textureScale: textureParams.textureScaleXY,
+                                        shouldResize: useOriginalMaterial ? 1 : 0)
+    }
+    
     func setFragmentBytes(on renderEncoder: MTLRenderCommandEncoder) {
+        /// Update this value in case it has changed
+        editableFragmentUniformsA.useOriginalMaterial = useOriginalMaterial
+        editableFragmentUniformsB.useOriginalMaterial = useOriginalMaterial
+        
         switch fragmentAlgorithm {
         case .fragment_algo_a:
             fragmentUniformsA = editableFragmentUniformsA.asStaticStruct()
@@ -206,6 +216,30 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
         }
     }
     
+    func attachOutputTexture(to renderPassDescriptor: MTLRenderPassDescriptor) {
+        renderPassDescriptor.colorAttachments[0].texture = previousFrame
+        renderPassDescriptor.colorAttachments[0].loadAction = .clear
+        renderPassDescriptor.colorAttachments[0].storeAction = .store
+        renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0, 0, 0, 1);
+    }
+    
+    func setSamplerState(on renderEncoder: MTLRenderCommandEncoder) {
+        if shouldRemakeSamplerState {
+            samplerState = Renderer.makeSamplerState(device: device, minMagFilter: minMagFilter)
+            shouldRemakeSamplerState = false
+        }
+        renderEncoder.setFragmentSamplerState(samplerState, index: 0)
+    }
+    
+    func setFragmentTexture(on renderEncoder: MTLRenderCommandEncoder) {
+        if useOriginalMaterial {
+            renderEncoder.setFragmentTexture(material.texture, index: 0)
+            useOriginalMaterial = false
+        } else {
+            renderEncoder.setFragmentTexture(previousFrame, index: 0)
+        }
+    }
+    
     func draw(in view: MTKView) {
         guard let drawable = view.currentDrawable,
               let renderPassDescriptor = view.currentRenderPassDescriptor,
@@ -213,32 +247,20 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
             return
         }
         
-        renderPassDescriptor.colorAttachments[0].texture = previousFrame
-        renderPassDescriptor.colorAttachments[0].loadAction = .clear
-        renderPassDescriptor.colorAttachments[0].storeAction = .store
-        renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0, 0, 0, 1);
+        attachOutputTexture(to: renderPassDescriptor)
         
         if shouldSetTextureColorData {
             setTextureColorData(commandBuffer: commandBuffer)
             shouldSetTextureColorData = false
-            usingOriginalMaterial = true
+            useOriginalMaterial = true
         }
         
         guard let renderEncoder = commandBuffer.makeRenderCommandEncoder(descriptor: renderPassDescriptor) else {
             return
         }
         
-        var vertexUniforms = VertexUniforms(textureScale: textureParams.textureScaleXY,
-                                            shouldResize: usingOriginalMaterial ? 1 : 0)
-        
-        editableFragmentUniformsA.usingOriginalMaterial = usingOriginalMaterial
-        editableFragmentUniformsB.usingOriginalMaterial = usingOriginalMaterial
-        
-        if shouldRemakeSamplerState {
-            samplerState = Renderer.makeSamplerState(device: device, minMagFilter: minMagFilter)
-            shouldRemakeSamplerState = false
-        }
-        renderEncoder.setFragmentSamplerState(samplerState, index: 0)
+        setVertexUniforms()
+        setSamplerState(on: renderEncoder)
         renderEncoder.setRenderPipelineState(pipelineStates[fragmentAlgorithm]!)
         renderEncoder.setVertexBytes(&vertexUniforms, length: MemoryLayout<VertexUniforms>.size, index: 1)
         setFragmentBytes(on: renderEncoder)
@@ -260,12 +282,7 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
                                             length: plane.indices.count * MemoryLayout<UInt16>.size,
                                             options: [])!
         
-        if usingOriginalMaterial {
-            renderEncoder.setFragmentTexture(material.texture, index: 0)
-            usingOriginalMaterial = false
-        } else {
-            renderEncoder.setFragmentTexture(previousFrame, index: 0)
-        }
+        setFragmentTexture(on: renderEncoder)
         renderEncoder.setVertexBuffer(vertexBuffer, offset: 0, index: 0)
         renderEncoder.drawIndexedPrimitives(type: .triangle,
                                             indexCount: plane.indices.count,
@@ -276,7 +293,7 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
 }
 
 struct VertexUniforms {
-    var textureScale: simd_float2
+    var textureScale: simd_float2 = simd_float2(1, 1)
     var shouldResize: Int = 0
 }
 

@@ -10,7 +10,7 @@ struct FragmentUniformsA {
     var fragmentPr: UInt8 = 1
     var fragmentPg: UInt8 = 1
     var fragmentPb: UInt8 = 1
-    var usingOriginalMaterial: Bool = true
+    var useOriginalMaterial: Bool = true
     
     init() {}
     
@@ -21,7 +21,7 @@ struct FragmentUniformsA {
         self.fragmentPr = UInt8(editable.fragmentPr)
         self.fragmentPg = UInt8(editable.fragmentPg)
         self.fragmentPb = UInt8(editable.fragmentPb)
-        self.usingOriginalMaterial = editable.usingOriginalMaterial
+        self.useOriginalMaterial = editable.useOriginalMaterial
     }
 }
 
@@ -32,7 +32,7 @@ struct EditableFragmentUniformsA {
     var fragmentPr: Float = 1
     var fragmentPg: Float = 1
     var fragmentPb: Float = 1
-    var usingOriginalMaterial: Bool = true
+    var useOriginalMaterial: Bool = true
     
     func asStaticStruct() -> FragmentUniformsA {
         return FragmentUniformsA(from: self)
@@ -41,19 +41,19 @@ struct EditableFragmentUniformsA {
 
 struct FragmentUniformsB {
     var fragmentX: UInt8 = 1
-    var usingOriginalMaterial: Bool = true
+    var useOriginalMaterial: Bool = true
     
     init() {}
     
     init(from editable: EditableFragmentUniformsB) {
         self.fragmentX = UInt8(editable.fragmentX)
-        self.usingOriginalMaterial = editable.usingOriginalMaterial
+        self.useOriginalMaterial = editable.useOriginalMaterial
     }
 }
 
 struct EditableFragmentUniformsB {
     var fragmentX: Float = 1
-    var usingOriginalMaterial: Bool = true
+    var useOriginalMaterial: Bool = true
     
     func asStaticStruct() -> FragmentUniformsB {
         return FragmentUniformsB(from: self)
