@@ -305,6 +305,11 @@ struct TextureParams {
     var textureP4: Float = 1
 }
 
+enum FragmentAlgorithm: String, CaseIterable {
+    case fragment_algo_a
+    case fragment_algo_b
+}
+
 struct FragmentUniformsA {
     var fragmentP1: Int32 = 1
     var fragmentP2: Int32 = 1
@@ -360,9 +365,4 @@ struct EditableFragmentUniformsB {
     func asStaticStruct() -> FragmentUniformsB {
         return FragmentUniformsB(from: self)
     }
-}
-
-enum FragmentAlgorithm: String, CaseIterable {
-    case fragment_algo_a
-    case fragment_algo_b
 }
