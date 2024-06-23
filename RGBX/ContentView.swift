@@ -7,12 +7,12 @@ struct ContentView: View {
     var renderer: Renderer
     
     var body: some View {
-        VStack {
+        ScrollView {
             MetalView(device: device, metalView: metalView)
                 .frame(width: 600, height: 600)
             AlgorithmParams(renderer: renderer)
         }
-        .frame(width: 800, height: 1000)
+        .frame(width: 600)
         .padding()
     }
 }
@@ -60,11 +60,26 @@ struct AlgorithmParams: View {
                               step: 1)
                 
             case .fragment_algo_b:
-                LabeledSlider(name: "Param X",
-                              value: $renderer.editableFragmentUniformsB.fragmentX,
+                LabeledSlider(name: "Top Threshold",
+                              value: $renderer.editableFragmentUniformsB.topThreshold,
                               min: 0,
-                              max: 7,
-                              step: 1)
+                              max: 4)
+                LabeledSlider(name: "Bottom Threshold",
+                              value: $renderer.editableFragmentUniformsB.bottomThreshold,
+                              min: 0,
+                              max: 4)
+                LabeledSlider(name: "Live R",
+                              value: $renderer.editableFragmentUniformsB.liveColor.x)
+                LabeledSlider(name: "Live G",
+                              value: $renderer.editableFragmentUniformsB.liveColor.y)
+                LabeledSlider(name: "Live B",
+                              value: $renderer.editableFragmentUniformsB.liveColor.z)
+                LabeledSlider(name: "Dead R",
+                              value: $renderer.editableFragmentUniformsB.deadColor.x)
+                LabeledSlider(name: "Dead G",
+                              value: $renderer.editableFragmentUniformsB.deadColor.y)
+                LabeledSlider(name: "Dead B",
+                              value: $renderer.editableFragmentUniformsB.deadColor.z)
             }
             
             Text("Texture Parameters - CPU")

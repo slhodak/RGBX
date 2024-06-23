@@ -1,3 +1,5 @@
+import simd
+
 enum FragmentAlgorithm: String, CaseIterable {
     case fragment_algo_a
     case fragment_algo_b
@@ -39,20 +41,33 @@ struct EditableFragmentUniformsA {
     }
 }
 
+
+/// There's no need to distinguish between the editable struct and the one passed to the gpu,
+/// but this is the pattern in case we want to use values that aren't easily passed to UI elements,
+/// like UInt8 with Sliders
 struct FragmentUniformsB {
-    var fragmentX: UInt8 = 1
+    var topThreshold: Float = 3
+    var bottomThreshold: Float = 3
+    var liveColor: simd_float3 = simd_float3(1, 1, 1)
+    var deadColor: simd_float3 = simd_float3(0, 0, 0)
     var useOriginalMaterial: Bool = true
     
     init() {}
     
     init(from editable: EditableFragmentUniformsB) {
-        self.fragmentX = UInt8(editable.fragmentX)
+        self.topThreshold = editable.topThreshold
+        self.bottomThreshold = editable.bottomThreshold
+        self.liveColor = simd_float3(editable.liveColor.x, editable.liveColor.y, editable.liveColor.z)
+        self.deadColor = simd_float3(editable.deadColor.x, editable.deadColor.y, editable.deadColor.z)
         self.useOriginalMaterial = editable.useOriginalMaterial
     }
 }
 
 struct EditableFragmentUniformsB {
-    var fragmentX: Float = 1
+    var topThreshold: Float = 3
+    var bottomThreshold: Float = 1
+    var liveColor = simd_float3(1, 1, 1)
+    var deadColor = simd_float3(0, 0, 0)
     var useOriginalMaterial: Bool = true
     
     func asStaticStruct() -> FragmentUniformsB {

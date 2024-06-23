@@ -10,10 +10,10 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
     var pipelineStates: [FragmentAlgorithm: MTLRenderPipelineState] = [:]
     var samplerState: MTLSamplerState
     @Published var algorithmicTexture: AlgorithmicTexture
-    @Published var minMagFilter: MTLSamplerMinMagFilter = .linear { didSet { shouldRemakeSamplerState = true } }
+    @Published var minMagFilter: MTLSamplerMinMagFilter = .nearest { didSet { shouldRemakeSamplerState = true } }
     var shouldRemakeSamplerState = false
     var useOriginalMaterial = true
-    @Published var fragmentAlgorithm: FragmentAlgorithm = .fragment_algo_a
+    @Published var fragmentAlgorithm: FragmentAlgorithm = .fragment_algo_b
     @Published var editableFragmentUniformsA = EditableFragmentUniformsA()
     @Published var editableFragmentUniformsB = EditableFragmentUniformsB()
     var fragmentUniformsA: FragmentUniformsA = FragmentUniformsA()
@@ -31,7 +31,7 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
                                                      metalView: metalView,
                                                      vertexDescriptor: vertexDescriptor)
         samplerState = Renderer.makeSamplerState(device: device,
-                                                 minMagFilter: .linear)
+                                                 minMagFilter: .nearest)
         algorithmicTexture = AlgorithmicTexture(device: device)
         let frameTextureDescriptor = Renderer.makeFrameTextureDescriptor()
         previousFrame = device.makeTexture(descriptor: frameTextureDescriptor)!
