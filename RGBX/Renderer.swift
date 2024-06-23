@@ -9,9 +9,8 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
     var vertexDescriptor: MTLVertexDescriptor
     var pipelineStates: [FragmentAlgorithm: MTLRenderPipelineState] = [:]
     var samplerState: MTLSamplerState
-    @Published var textureParams = TextureParams() { didSet { shouldSetTextureColorData = true } }
+    @Published var algorithmicTexture: AlgorithmicTexture
     @Published var minMagFilter: MTLSamplerMinMagFilter = .linear { didSet { shouldRemakeSamplerState = true } }
-    var shouldSetTextureColorData = true
     var shouldRemakeSamplerState = false
     var useOriginalMaterial = true
     @Published var fragmentAlgorithm: FragmentAlgorithm = .fragment_algo_a
@@ -20,7 +19,6 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
     var fragmentUniformsA: FragmentUniformsA = FragmentUniformsA()
     var fragmentUniformsB: FragmentUniformsB = FragmentUniformsB()
     var vertexUniforms: VertexUniforms = VertexUniforms()
-    var material: Material
     let plane = Plane()
     var previousFrame: MTLTexture
     
@@ -29,7 +27,19 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
         commandQueue = device.makeCommandQueue()!
         view = metalView
         vertexDescriptor = Renderer.makeVertexDescriptor()
-        pipelineStates = [
+        pipelineStates = Renderer.makePipelineStates(device: device,
+                                                     metalView: metalView,
+                                                     vertexDescriptor: vertexDescriptor)
+        samplerState = Renderer.makeSamplerState(device: device,
+                                                 minMagFilter: .linear)
+        algorithmicTexture = AlgorithmicTexture(device: device)
+        previousFrame = Renderer.makeFrameTexture(device: device)
+    }
+    
+    func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {}
+    
+    static func makePipelineStates(device: MTLDevice, metalView: MTKView, vertexDescriptor: MTLVertexDescriptor) -> [FragmentAlgorithm: MTLRenderPipelineState] {
+        return [
             .fragment_algo_a: Renderer.makePipelineState(device: device,
                                                          fragmentAlgorithm: .fragment_algo_a,
                                                          view: metalView,
@@ -39,22 +49,11 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
                                                          view: metalView,
                                                          vertexDescriptor: vertexDescriptor)
         ]
-        
-        samplerState = Renderer.makeSamplerState(device: device,
-                                                 minMagFilter: .linear)
-        material = Renderer.makeMaterial(device: device)
-        let frameTextureDescriptor = Renderer.makeFrameTextureDescriptor()
-        previousFrame = device.makeTexture(descriptor: frameTextureDescriptor)!
     }
     
-    func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {}
-    
-    static func makeMaterialTextureDescriptor() -> MTLTextureDescriptor {
-        let textureDescriptor = MTLTextureDescriptor()
-        textureDescriptor.width = 300
-        textureDescriptor.height = 300
-        textureDescriptor.pixelFormat = .bgra8Unorm
-        return textureDescriptor
+    static func makeFrameTexture(device: MTLDevice) -> MTLTexture {
+        let frameTextureDescriptor = Renderer.makeFrameTextureDescriptor()
+        return device.makeTexture(descriptor: frameTextureDescriptor)!
     }
     
     static func makeFrameTextureDescriptor() -> MTLTextureDescriptor {
@@ -64,13 +63,6 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
         textureDescriptor.usage = [.renderTarget, .shaderWrite, .shaderRead]
         textureDescriptor.storageMode = .private
         return textureDescriptor
-    }
-    
-    static func makeMaterial(device: MTLDevice) -> Material {
-        let textureDescriptor = Renderer.makeMaterialTextureDescriptor()
-        let texture = device.makeTexture(descriptor: textureDescriptor)
-        let material = Material(texture: texture)
-        return material
     }
     
     static func makeSamplerState(device: MTLDevice, minMagFilter: MTLSamplerMinMagFilter) -> MTLSamplerState {
@@ -121,57 +113,6 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
         }
     }
     
-    func setTextureColorData(commandBuffer: MTLCommandBuffer) {
-        guard let blitEncoder: MTLBlitCommandEncoder = commandBuffer.makeBlitCommandEncoder() else {
-            fatalError("Failed to create blit encoder")
-        }
-        
-        guard let texture = material.texture else { return }
-        
-        let pixelCount = texture.width * texture.height
-        /// argb because byte order is bgra but my M1 is little-endian, so LSB goes first
-        let opaque: UInt32      = 0b11111111_00000000_00000000_00000000
-        var color: UInt32       = 0b00000000_00000000_00000000_00000000
-        let colorMask: UInt32   = 0b00000000_11111111_11111111_11111111
-        var colorData: [UInt32] = []
-        
-        for i in 0..<pixelCount {
-            colorData.append(color)
-            if i % Int(textureParams.textureP3) == 0 {
-                color = color << UInt32(textureParams.textureP1)
-            } else if i % Int(textureParams.textureP4) == 0 {
-                color = color >> UInt32(textureParams.textureP2)
-            }
-            color = (color + 1) % colorMask
-            color = color | opaque
-        }
-        
-        let bufferSize = pixelCount * MemoryLayout<UInt32>.size
-        let buffer = colorData.withUnsafeBytes { bytes in
-            return device.makeBuffer(bytes: bytes.baseAddress!,
-                                     length: bufferSize,
-                                     options: [])
-        }
-        
-        guard let buffer = buffer else {
-            fatalError("Failed to create texture color data buffer")
-        }
-        
-        let bytesPerRow = texture.width * MemoryLayout<UInt32>.size
-        blitEncoder.copy(from: buffer,
-                         sourceOffset: 0,
-                         sourceBytesPerRow: bytesPerRow,
-                         sourceBytesPerImage: bufferSize,
-                         sourceSize: MTLSize(width: texture.width,
-                                             height: texture.height,
-                                             depth: 1),
-                         to: material.texture!,
-                         destinationSlice: 0, destinationLevel: 0,
-                         destinationOrigin: MTLOrigin(x: 0, y: 0, z: 0))
-        
-        blitEncoder.endEncoding()
-    }
-    
     func copyToDrawable(source: MTLTexture, drawable: CAMetalDrawable, commandBuffer: MTLCommandBuffer) {
         guard let blitEncoder = commandBuffer.makeBlitCommandEncoder() else {
             fatalError("Failed to make blit command encoder")
@@ -193,7 +134,7 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
     }
     
     func setVertexUniforms() {
-        vertexUniforms = VertexUniforms(textureScale: textureParams.textureScaleXY,
+        vertexUniforms = VertexUniforms(textureScale: algorithmicTexture.params.textureScaleXY,
                                         shouldResize: useOriginalMaterial ? 1 : 0)
     }
     
@@ -233,7 +174,7 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
     
     func setFragmentTexture(on renderEncoder: MTLRenderCommandEncoder) {
         if useOriginalMaterial {
-            renderEncoder.setFragmentTexture(material.texture, index: 0)
+            renderEncoder.setFragmentTexture(algorithmicTexture.material.texture, index: 0)
             useOriginalMaterial = false
         } else {
             renderEncoder.setFragmentTexture(previousFrame, index: 0)
@@ -249,9 +190,9 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
         
         attachOutputTexture(to: renderPassDescriptor)
         
-        if shouldSetTextureColorData {
-            setTextureColorData(commandBuffer: commandBuffer)
-            shouldSetTextureColorData = false
+        if algorithmicTexture.hasChanged {
+            algorithmicTexture.setTextureColorData(device: device, commandBuffer: commandBuffer)
+            algorithmicTexture.hasChanged = false
             useOriginalMaterial = true
         }
         
@@ -314,20 +255,4 @@ struct Plane {
         0, 1, 2,
         2, 1, 3
     ]
-}
-
-struct Material {
-    var texture: MTLTexture?
-}
-
-struct TextureParams {
-    var textureScale: Float = 1
-    var textureScaleXY: simd_float2 {
-        simd_float2(textureScale, textureScale)
-    }
-    var textureP1: Float = 1
-    var textureP2: Float = 1
-    var textureP3: Float = 1
-    var textureP4: Float = 1
-    var minMagFilter: MTLSamplerMinMagFilter = .linear
 }

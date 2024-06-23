@@ -9,6 +9,7 @@
 /* Begin PBXBuildFile section */
 		17612C1A2C276D2200169BAD /* DebouncedLogger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17612C192C276D2200169BAD /* DebouncedLogger.swift */; };
 		17612C1C2C28941900169BAD /* FragmentAlgorithm.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17612C1B2C28941900169BAD /* FragmentAlgorithm.swift */; };
+		17612C1E2C28979700169BAD /* AlgorithmicTexture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17612C1D2C28979700169BAD /* AlgorithmicTexture.swift */; };
 		177041A42C26201000C17E23 /* LabeledSlider.swift in Sources */ = {isa = PBXBuildFile; fileRef = 177041A32C26201000C17E23 /* LabeledSlider.swift */; };
 		178C38992C25B93C00F0A253 /* Renderer.swift in Sources */ = {isa = PBXBuildFile; fileRef = 178C38982C25B93C00F0A253 /* Renderer.swift */; };
 		17AAA02B2C25018B007EE5D8 /* RGBXApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 17AAA02A2C25018B007EE5D8 /* RGBXApp.swift */; };
@@ -22,6 +23,7 @@
 /* Begin PBXFileReference section */
 		17612C192C276D2200169BAD /* DebouncedLogger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DebouncedLogger.swift; sourceTree = "<group>"; };
 		17612C1B2C28941900169BAD /* FragmentAlgorithm.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FragmentAlgorithm.swift; sourceTree = "<group>"; };
+		17612C1D2C28979700169BAD /* AlgorithmicTexture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AlgorithmicTexture.swift; sourceTree = "<group>"; };
 		177041A32C26201000C17E23 /* LabeledSlider.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LabeledSlider.swift; sourceTree = "<group>"; };
 		178C38982C25B93C00F0A253 /* Renderer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = Renderer.swift; sourceTree = "<group>"; };
 		17AAA0272C25018B007EE5D8 /* RGBX.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = RGBX.app; sourceTree = BUILT_PRODUCTS_DIR; };
@@ -75,6 +77,7 @@
 				17AAA0392C252DEF007EE5D8 /* Shaders.metal */,
 				17AAA02A2C25018B007EE5D8 /* RGBXApp.swift */,
 				178C38982C25B93C00F0A253 /* Renderer.swift */,
+				17612C1D2C28979700169BAD /* AlgorithmicTexture.swift */,
 				17612C1B2C28941900169BAD /* FragmentAlgorithm.swift */,
 				17AAA03B2C2533E1007EE5D8 /* MetalView.swift */,
 				17AAA02C2C25018B007EE5D8 /* ContentView.swift */,
@@ -172,6 +175,7 @@
 				17612C1C2C28941900169BAD /* FragmentAlgorithm.swift in Sources */,
 				17AAA02D2C25018B007EE5D8 /* ContentView.swift in Sources */,
 				178C38992C25B93C00F0A253 /* Renderer.swift in Sources */,
+				17612C1E2C28979700169BAD /* AlgorithmicTexture.swift in Sources */,
 				17AAA02B2C25018B007EE5D8 /* RGBXApp.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
