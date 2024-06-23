@@ -9,11 +9,7 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
     var vertexDescriptor: MTLVertexDescriptor
     var pipelineStates: [FragmentAlgorithm: MTLRenderPipelineState] = [:]
     var samplerState: MTLSamplerState
-    @Published var textureScale: Float = 1 { didSet { shouldSetTextureColorData = true } }
-    @Published var textureP1: Float = 1 { didSet { shouldSetTextureColorData = true } }
-    @Published var textureP2: Float = 1 { didSet { shouldSetTextureColorData = true } }
-    @Published var textureP3: Float = 1 { didSet { shouldSetTextureColorData = true } }
-    @Published var textureP4: Float = 1 { didSet { shouldSetTextureColorData = true } }
+    @Published var textureParams = TextureParams() { didSet { shouldSetTextureColorData = true } }
     var shouldSetTextureColorData = true
     var usingOriginalMaterial = true
     @Published var fragmentAlgorithm: FragmentAlgorithm = .fragment_algo_a
@@ -135,10 +131,10 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
         
         for i in 0..<pixelCount {
             colorData.append(color)
-            if i % Int(textureP3) == 0 {
-                color = color << UInt32(textureP1)
-            } else if i % Int(textureP4) == 0 {
-                color = color >> UInt32(textureP2)
+            if i % Int(textureParams.textureP3) == 0 {
+                color = color << UInt32(textureParams.textureP1)
+            } else if i % Int(textureParams.textureP4) == 0 {
+                color = color >> UInt32(textureParams.textureP2)
             }
             color = (color + 1) % colorMask
             color = color | opaque
@@ -227,7 +223,7 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
             return
         }
         
-        var vertexUniforms = VertexUniforms(textureScale: simd_float2(textureScale, textureScale),
+        var vertexUniforms = VertexUniforms(textureScale: textureParams.textureScaleXY,
                                             shouldResize: usingOriginalMaterial ? 1 : 0)
         
         editableFragmentUniformsA.usingOriginalMaterial = usingOriginalMaterial
@@ -296,6 +292,17 @@ struct Plane {
 
 struct Material {
     var texture: MTLTexture?
+}
+
+struct TextureParams {
+    var textureScale: Float = 1
+    var textureScaleXY: simd_float2 {
+        simd_float2(textureScale, textureScale)
+    }
+    var textureP1: Float = 1
+    var textureP2: Float = 1
+    var textureP3: Float = 1
+    var textureP4: Float = 1
 }
 
 struct FragmentUniformsA {

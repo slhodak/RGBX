@@ -67,10 +67,10 @@ struct AlgorithmParams: View {
         }
         
         Text("Texture Parameters - CPU")
-        LabeledSlider(name: "Texture Scale", value: $renderer.textureScale, min: 0.001, max: 2.0)
-        LabeledSlider(name: "Texture 1", value: $renderer.textureP1, min: 1, max: 32, step: 1)
-        LabeledSlider(name: "Texture 2", value: $renderer.textureP2, min: 1, max: 32, step: 1)
-        LabeledSlider(name: "Texture 3", value: $renderer.textureP3, min: 1, max: 255)
-        LabeledSlider(name: "Texture 4", value: $renderer.textureP4, min: 1, max: 255)
+        LabeledSlider(name: "Texture Scale", value: $renderer.textureParams.textureScale, min: 0.001, max: 2.0)
+        LabeledSlider(name: "Texture 1", value: $renderer.textureParams.textureP1, min: 1, max: 32, step: 1)
+        LabeledSlider(name: "Texture 2", value: $renderer.textureParams.textureP2, min: 1, max: 32, step: 1)
+        LabeledSlider(name: "Texture 3", value: $renderer.textureParams.textureP3, min: 1, max: 255)
+        LabeledSlider(name: "Texture 4", value: $renderer.textureParams.textureP4, min: 1, max: 255)
     }
 }
