@@ -7,7 +7,7 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
     var view: MTKView
     var commandQueue: MTLCommandQueue
     var vertexDescriptor: MTLVertexDescriptor
-    var pipelineState: MTLRenderPipelineState
+    var pipelineStates: [FragmentAlgorithm: MTLRenderPipelineState] = [:]
     var samplerState: MTLSamplerState
     @Published var textureScale: Float = 1 { didSet { shouldSetTextureColorData = true } }
     @Published var textureP1: Float = 1 { didSet { shouldSetTextureColorData = true } }
@@ -16,6 +16,9 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
     @Published var textureP4: Float = 1 { didSet { shouldSetTextureColorData = true } }
     var shouldSetTextureColorData = true
     var usingOriginalMaterial = true
+    var fragmentAlgorithm: FragmentAlgorithm = .fragment_algo_a
+    var fragmentUniformsA: FragmentUniformsA = FragmentUniformsA()
+    var fragmentUniformsB: FragmentUniformsB = FragmentUniformsB()
     @Published var fragmentP1: Float = 1
     @Published var fragmentP2: Float = 1
     @Published var fragmentP3: Float = 1
@@ -31,18 +34,24 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
         commandQueue = device.makeCommandQueue()!
         view = metalView
         vertexDescriptor = Renderer.makeVertexDescriptor()
-        pipelineState = Renderer.makePipelineState(device: device,
-                                                   view: metalView,
-                                                   vertexDescriptor: vertexDescriptor)
+        pipelineStates = [
+            .fragment_algo_a: Renderer.makePipelineState(device: device,
+                                                         fragmentAlgorithm: .fragment_algo_a,
+                                                         view: metalView,
+                                                         vertexDescriptor: vertexDescriptor),
+            .fragment_algo_b: Renderer.makePipelineState(device: device,
+                                                         fragmentAlgorithm: .fragment_algo_b,
+                                                         view: metalView,
+                                                         vertexDescriptor: vertexDescriptor)
+        ]
+        
         samplerState = Renderer.makeSamplerState(device: device)
         material = Renderer.makeMaterial(device: device)
         let frameTextureDescriptor = Renderer.makeFrameTextureDescriptor()
         previousFrame = device.makeTexture(descriptor: frameTextureDescriptor)!
     }
     
-    func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
-    }
-    
+    func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {}
     
     static func makeMaterialTextureDescriptor() -> MTLTextureDescriptor {
         let textureDescriptor = MTLTextureDescriptor()
@@ -98,13 +107,13 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
         return vertexDescriptor
     }
     
-    static func makePipelineState(device: MTLDevice, view: MTKView, vertexDescriptor: MTLVertexDescriptor) -> MTLRenderPipelineState {
+    static func makePipelineState(device: MTLDevice, fragmentAlgorithm: FragmentAlgorithm, view: MTKView, vertexDescriptor: MTLVertexDescriptor) -> MTLRenderPipelineState {
         let defaultLibrary = device.makeDefaultLibrary()!
         let pipelineDescriptor = MTLRenderPipelineDescriptor()
         pipelineDescriptor.vertexDescriptor = vertexDescriptor
         
         pipelineDescriptor.vertexFunction = defaultLibrary.makeFunction(name: "vertex_main")
-        pipelineDescriptor.fragmentFunction = defaultLibrary.makeFunction(name: "fragment_main")
+        pipelineDescriptor.fragmentFunction = defaultLibrary.makeFunction(name: fragmentAlgorithm.rawValue)
         pipelineDescriptor.colorAttachments[0].pixelFormat = view.colorPixelFormat
         
         do {
@@ -185,6 +194,34 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
         blitEncoder.endEncoding()
     }
     
+    func setFragmentUniforms() {
+        switch fragmentAlgorithm {
+        case .fragment_algo_a:
+            fragmentUniformsA = FragmentUniformsA(fragmentP1: Int32(fragmentP1),
+                                                  fragmentP2: Int32(fragmentP2),
+                                                  fragmentP3: Int32(fragmentP3),
+                                                  fragmentPr: UInt8(fragmentPr),
+                                                  fragmentPg: UInt8(fragmentPg),
+                                                  fragmentPb: UInt8(fragmentPb),
+                                                  usingOriginalMaterial: usingOriginalMaterial)
+        case .fragment_algo_b:
+            fragmentUniformsB = FragmentUniformsB(usingOriginalMaterial: usingOriginalMaterial)
+        }
+    }
+    
+    func setFragmentBytes(on renderEncoder: MTLRenderCommandEncoder) {
+        switch fragmentAlgorithm {
+        case .fragment_algo_a:
+            renderEncoder.setFragmentBytes(&fragmentUniformsA,
+                                           length: MemoryLayout<FragmentUniformsA>.size,
+                                           index: 0)
+        case .fragment_algo_b:
+            renderEncoder.setFragmentBytes(&fragmentUniformsB,
+                                           length: MemoryLayout<FragmentUniformsB>.size,
+                                           index: 0)
+        }
+    }
+    
     func draw(in view: MTKView) {
         guard let drawable = view.currentDrawable,
               let renderPassDescriptor = view.currentRenderPassDescriptor,
@@ -210,18 +247,12 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
         var vertexUniforms = VertexUniforms(textureScale: simd_float2(textureScale, textureScale),
                                             shouldResize: usingOriginalMaterial ? 1 : 0)
         
-        var fragmentUniforms = FragmentUniforms(fragmentP1: Int32(fragmentP1),
-                                                fragmentP2: Int32(fragmentP2),
-                                                fragmentP3: Int32(fragmentP3),
-                                                fragmentPr: UInt8(fragmentPr),
-                                                fragmentPg: UInt8(fragmentPg),
-                                                fragmentPb: UInt8(fragmentPb),
-                                                usingOriginalMaterial: usingOriginalMaterial)
-        
+        setFragmentUniforms()
         renderEncoder.setFragmentSamplerState(samplerState, index: 0)
-        renderEncoder.setRenderPipelineState(pipelineState)
+        renderEncoder.setRenderPipelineState(pipelineStates[fragmentAlgorithm]!)
         renderEncoder.setVertexBytes(&vertexUniforms, length: MemoryLayout<VertexUniforms>.size, index: 1)
-        renderEncoder.setFragmentBytes(&fragmentUniforms, length: MemoryLayout<FragmentUniforms>.size, index: 0)
+        setFragmentBytes(on: renderEncoder)
+        
         drawPlane(renderEncoder: renderEncoder)
         renderEncoder.endEncoding()
         
@@ -282,12 +313,21 @@ struct Material {
     var texture: MTLTexture?
 }
 
-struct FragmentUniforms {
-    var fragmentP1: Int32
-    var fragmentP2: Int32
-    var fragmentP3: Int32
-    var fragmentPr: UInt8
-    var fragmentPg: UInt8
-    var fragmentPb: UInt8
-    var usingOriginalMaterial: Bool
+struct FragmentUniformsA {
+    var fragmentP1: Int32 = 1
+    var fragmentP2: Int32 = 1
+    var fragmentP3: Int32 = 1
+    var fragmentPr: UInt8 = 1
+    var fragmentPg: UInt8 = 1
+    var fragmentPb: UInt8 = 1
+    var usingOriginalMaterial: Bool = true
+}
+
+struct FragmentUniformsB {
+    var usingOriginalMaterial: Bool = true
+}
+
+enum FragmentAlgorithm: String {
+    case fragment_algo_a
+    case fragment_algo_b
 }
