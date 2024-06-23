@@ -210,10 +210,6 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
         var vertexUniforms = VertexUniforms(textureScale: simd_float2(textureScale, textureScale),
                                             shouldResize: usingOriginalMaterial ? 1 : 0)
         
-        Throttler.shared.run(forKey: "fragment properties", every: 4) {
-            print("Fragment P1: \(self.fragmentP1)")
-            print("Fragment P2: \(self.fragmentP2)")
-        }
         var fragmentUniforms = FragmentUniforms(fragmentP1: Int32(fragmentP1),
                                                 fragmentP2: Int32(fragmentP2),
                                                 fragmentP3: Int32(fragmentP3),
