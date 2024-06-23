@@ -10,7 +10,9 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
     var pipelineStates: [FragmentAlgorithm: MTLRenderPipelineState] = [:]
     var samplerState: MTLSamplerState
     @Published var textureParams = TextureParams() { didSet { shouldSetTextureColorData = true } }
+    @Published var minMagFilter: MTLSamplerMinMagFilter = .linear { didSet { shouldRemakeSamplerState = true } }
     var shouldSetTextureColorData = true
+    var shouldRemakeSamplerState = false
     var usingOriginalMaterial = true
     @Published var fragmentAlgorithm: FragmentAlgorithm = .fragment_algo_a
     @Published var editableFragmentUniformsA = EditableFragmentUniformsA()
@@ -37,7 +39,8 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
                                                          vertexDescriptor: vertexDescriptor)
         ]
         
-        samplerState = Renderer.makeSamplerState(device: device)
+        samplerState = Renderer.makeSamplerState(device: device,
+                                                 minMagFilter: .linear)
         material = Renderer.makeMaterial(device: device)
         let frameTextureDescriptor = Renderer.makeFrameTextureDescriptor()
         previousFrame = device.makeTexture(descriptor: frameTextureDescriptor)!
@@ -69,11 +72,13 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
         return material
     }
     
-    static func makeSamplerState(device: MTLDevice) -> MTLSamplerState {
+    static func makeSamplerState(device: MTLDevice, minMagFilter: MTLSamplerMinMagFilter) -> MTLSamplerState {
         let samplerDescriptor = MTLSamplerDescriptor()
         samplerDescriptor.normalizedCoordinates = true
-        samplerDescriptor.minFilter = .nearest
-        samplerDescriptor.magFilter = .nearest
+        /// There is a reason that changing these on the fly does not automatically result in a change to the way the pixels look,
+        /// but I don't understand what it is yet.
+        samplerDescriptor.minFilter = minMagFilter
+        samplerDescriptor.magFilter = minMagFilter
         //samplerDescriptor.mipFilter = .linear
         samplerDescriptor.rAddressMode = .repeat
         samplerDescriptor.sAddressMode = .repeat
@@ -229,6 +234,10 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
         editableFragmentUniformsA.usingOriginalMaterial = usingOriginalMaterial
         editableFragmentUniformsB.usingOriginalMaterial = usingOriginalMaterial
         
+        if shouldRemakeSamplerState {
+            samplerState = Renderer.makeSamplerState(device: device, minMagFilter: minMagFilter)
+            shouldRemakeSamplerState = false
+        }
         renderEncoder.setFragmentSamplerState(samplerState, index: 0)
         renderEncoder.setRenderPipelineState(pipelineStates[fragmentAlgorithm]!)
         renderEncoder.setVertexBytes(&vertexUniforms, length: MemoryLayout<VertexUniforms>.size, index: 1)
@@ -303,6 +312,7 @@ struct TextureParams {
     var textureP2: Float = 1
     var textureP3: Float = 1
     var textureP4: Float = 1
+    var minMagFilter: MTLSamplerMinMagFilter = .linear
 }
 
 enum FragmentAlgorithm: String, CaseIterable {
