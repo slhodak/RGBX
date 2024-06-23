@@ -18,12 +18,14 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
     var usingOriginalMaterial = true
     @Published var fragmentP1: Float = 1
     @Published var fragmentP2: Float = 1
+    @Published var fragmentP3: Float = 1
     @Published var fragmentPr: Float = 1
     @Published var fragmentPg: Float = 1
     @Published var fragmentPb: Float = 1
     var material: Material
     let plane = Plane()
     var previousFrame: MTLTexture
+    var intermediateTexture: MTLTexture
     
     init(device: MTLDevice, metalView: MTKView) {
         self.device = device
@@ -37,6 +39,7 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
         material = Renderer.makeMaterial(device: device)
         let frameTextureDescriptor = Renderer.makeFrameTextureDescriptor()
         previousFrame = device.makeTexture(descriptor: frameTextureDescriptor)!
+        intermediateTexture = device.makeTexture(descriptor: frameTextureDescriptor)!
     }
     
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
@@ -159,27 +162,40 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
                                              depth: 1),
                          to: material.texture!,
                          destinationSlice: 0, destinationLevel: 0,
-                         destinationOrigin: MTLOrigin(x: 0, y: 0, z: 0)
-        )
+                         destinationOrigin: MTLOrigin(x: 0, y: 0, z: 0))
+        
         blitEncoder.endEncoding()
     }
     
-    func storePreviousFrame(drawable: CAMetalDrawable, commandBuffer: MTLCommandBuffer) {
+    func copyToDrawableAndFrameStore(source: MTLTexture, drawable: CAMetalDrawable, commandBuffer: MTLCommandBuffer) {
         guard let blitEncoder = commandBuffer.makeBlitCommandEncoder() else {
             fatalError("Failed to make blit command encoder")
         }
         
-        blitEncoder.copy(from: drawable.texture,
+        blitEncoder.copy(from: source,
                          sourceSlice: 0,
                          sourceLevel: 0,
                          sourceOrigin: MTLOrigin(x: 0, y: 0, z: 0),
                          sourceSize: MTLSize(width: drawable.texture.width,
                                              height: drawable.texture.height,
-                                            depth: 1),
+                                             depth: 1),
+                         to: drawable.texture,
+                         destinationSlice: 0,
+                         destinationLevel: 0,
+                         destinationOrigin: MTLOrigin(x: 0, y: 0, z: 0))
+        
+        blitEncoder.copy(from: source,
+                         sourceSlice: 0,
+                         sourceLevel: 0,
+                         sourceOrigin: MTLOrigin(x: 0, y: 0, z: 0),
+                         sourceSize: MTLSize(width: source.width,
+                                             height: source.height,
+                                             depth: 1),
                          to: previousFrame,
                          destinationSlice: 0,
                          destinationLevel: 0,
                          destinationOrigin: MTLOrigin(x: 0, y: 0, z: 0))
+        
         blitEncoder.endEncoding()
     }
     
@@ -189,6 +205,11 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
               let commandBuffer = commandQueue.makeCommandBuffer() else {
             return
         }
+        
+        renderPassDescriptor.colorAttachments[0].texture = intermediateTexture
+        renderPassDescriptor.colorAttachments[0].loadAction = .clear
+        renderPassDescriptor.colorAttachments[0].storeAction = .store
+        renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0, 0, 0, 1);
         
         if shouldSetTextureColorData {
             setTextureColorData(commandBuffer: commandBuffer)
@@ -200,9 +221,16 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
             return
         }
         
-        var vertexUniforms = VertexUniforms(textureScale: simd_float2(textureScale, textureScale))
-        var fragmentUniforms = FragmentUniforms(fragmentP1: UInt8(fragmentP1),
-                                                fragmentP2: UInt8(fragmentP2),
+        var vertexUniforms = VertexUniforms(textureScale: simd_float2(textureScale, textureScale),
+                                            shouldResize: usingOriginalMaterial ? 1 : 0)
+        
+        Throttler.shared.run(forKey: "fragment properties", every: 4) {
+            print("Fragment P1: \(self.fragmentP1)")
+            print("Fragment P2: \(self.fragmentP2)")
+        }
+        var fragmentUniforms = FragmentUniforms(fragmentP1: Int32(fragmentP1),
+                                                fragmentP2: Int32(fragmentP2),
+                                                fragmentP3: Int32(fragmentP3),
                                                 fragmentPr: UInt8(fragmentPr),
                                                 fragmentPg: UInt8(fragmentPg),
                                                 fragmentPb: UInt8(fragmentPb),
@@ -215,7 +243,7 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
         drawPlane(renderEncoder: renderEncoder)
         renderEncoder.endEncoding()
         
-        storePreviousFrame(drawable: drawable, commandBuffer: commandBuffer)
+        copyToDrawableAndFrameStore(source: intermediateTexture, drawable: drawable, commandBuffer: commandBuffer)
         
         commandBuffer.present(drawable)
         commandBuffer.commit()
@@ -246,6 +274,7 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
 
 struct VertexUniforms {
     var textureScale: simd_float2
+    var shouldResize: Int = 0
 }
 
 struct Vertex {
@@ -272,8 +301,9 @@ struct Material {
 }
 
 struct FragmentUniforms {
-    var fragmentP1: UInt8
-    var fragmentP2: UInt8
+    var fragmentP1: Int32
+    var fragmentP2: Int32
+    var fragmentP3: Int32
     var fragmentPr: UInt8
     var fragmentPg: UInt8
     var fragmentPb: UInt8

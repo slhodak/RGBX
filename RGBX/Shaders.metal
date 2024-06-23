@@ -3,6 +3,7 @@ using namespace metal;
 
 struct VertexUniforms {
     float2 textureScale;
+    int shouldResize;
 };
 
 struct VertexIn {
@@ -16,8 +17,9 @@ struct VertexOut {
 };
 
 struct FragmentUniforms {
-    uchar fragmentP1;
-    uchar fragmentP2;
+    int fragmentP1;
+    int fragmentP2;
+    int fragmentP3;
     uchar fragmentPr;
     uchar fragmentPg;
     uchar fragmentPb;
@@ -28,8 +30,11 @@ vertex VertexOut vertex_main(VertexIn v_in [[stage_in]],
                              constant VertexUniforms &vertexUniforms [[buffer(1)]]) {
     VertexOut v_out;
     v_out.position = float4(v_in.position, 1);
-    v_out.texCoords = v_in.texCoords;
-//    * vertexUniforms.textureScale;
+    if (vertexUniforms.shouldResize == 1) {
+        v_out.texCoords = v_in.texCoords * vertexUniforms.textureScale;
+    } else {
+        v_out.texCoords = v_in.texCoords;
+    }
     return v_out;
 };
 
@@ -40,26 +45,35 @@ fragment float4 fragment_main(VertexOut frag_in [[stage_in]],
     float3 baseColor = texture.sample(baseColorSampler, frag_in.texCoords).rgb;
     
     if (uniforms.usingOriginalMaterial == true) {
-        int n = (frag_in.position.y * texture.get_width()) + frag_in.position.x;
-        
-        uchar r = baseColor.x * UCHAR_MAX;
-        uchar g = baseColor.y * UCHAR_MAX;
-        uchar b = baseColor.z * UCHAR_MAX;
-        
-        if (n % uniforms.fragmentP1 == 0) {
-            r = r >> uniforms.fragmentPr;
-            g = g >> uniforms.fragmentPg;
-            b = b >> uniforms.fragmentPb;
-        } else if (n % uniforms.fragmentP2 == 0) {
-            r = r << uniforms.fragmentPr;
-            g = g << uniforms.fragmentPg;
-            b = b << uniforms.fragmentPb;
-        }
-        
-        return float4(float(r)/float(UCHAR_MAX),
-                      float(g)/float(UCHAR_MAX),
-                      float(b)/float(UCHAR_MAX), 1);
+        return float4(baseColor, 1);
     }
     
-    return float4(baseColor, 1);
+    int n = (frag_in.position.y * texture.get_width()) + frag_in.position.x;
+    
+    uchar r = baseColor.x * UCHAR_MAX;
+    uchar g = baseColor.y * UCHAR_MAX;
+    uchar b = baseColor.z * UCHAR_MAX;
+    
+    if (n < uniforms.fragmentP1) {
+        r = (r + uniforms.fragmentPr) % UCHAR_MAX;
+    } else {
+        r = r - uniforms.fragmentPr;
+    }
+    
+    if (n < uniforms.fragmentP2) {
+        g = (g + uniforms.fragmentPg) % UCHAR_MAX;
+    } else {
+        g = g - uniforms.fragmentPg;
+    }
+    
+    if (n < uniforms.fragmentP3) {
+        b = (b + uniforms.fragmentPb) % UCHAR_MAX;
+    } else {
+        b = b - uniforms.fragmentPb;
+    }
+
+    return float4(float(r)/float(UCHAR_MAX),
+                  float(g)/float(UCHAR_MAX),
+                  float(b)/float(UCHAR_MAX),
+                  1);
 };

@@ -32,7 +32,7 @@ class Throttler {
     
     private init() {}
     
-    func run(forKey key: String, at interval: CFTimeInterval = 1, block: @escaping () -> Void) {
+    func run(forKey key: String, every interval: CFTimeInterval = 1, block: @escaping () -> Void) {
         if self.intervals[key] == nil  {
             self.intervals[key] = interval
             self.lastExecutionTimes[key] = 0
