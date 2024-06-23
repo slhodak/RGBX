@@ -25,7 +25,6 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
     var material: Material
     let plane = Plane()
     var previousFrame: MTLTexture
-    var intermediateTexture: MTLTexture
     
     init(device: MTLDevice, metalView: MTKView) {
         self.device = device
@@ -39,7 +38,6 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
         material = Renderer.makeMaterial(device: device)
         let frameTextureDescriptor = Renderer.makeFrameTextureDescriptor()
         previousFrame = device.makeTexture(descriptor: frameTextureDescriptor)!
-        intermediateTexture = device.makeTexture(descriptor: frameTextureDescriptor)!
     }
     
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {
@@ -73,8 +71,8 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
     static func makeSamplerState(device: MTLDevice) -> MTLSamplerState {
         let samplerDescriptor = MTLSamplerDescriptor()
         samplerDescriptor.normalizedCoordinates = true
-        samplerDescriptor.minFilter = .linear
-        samplerDescriptor.magFilter = .linear
+        samplerDescriptor.minFilter = .nearest
+        samplerDescriptor.magFilter = .nearest
         //samplerDescriptor.mipFilter = .linear
         samplerDescriptor.rAddressMode = .repeat
         samplerDescriptor.sAddressMode = .repeat
@@ -206,7 +204,7 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
             return
         }
         
-        renderPassDescriptor.colorAttachments[0].texture = intermediateTexture
+        renderPassDescriptor.colorAttachments[0].texture = previousFrame
         renderPassDescriptor.colorAttachments[0].loadAction = .clear
         renderPassDescriptor.colorAttachments[0].storeAction = .store
         renderPassDescriptor.colorAttachments[0].clearColor = MTLClearColorMake(0, 0, 0, 1);
@@ -243,7 +241,7 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
         drawPlane(renderEncoder: renderEncoder)
         renderEncoder.endEncoding()
         
-        copyToDrawableAndFrameStore(source: intermediateTexture, drawable: drawable, commandBuffer: commandBuffer)
+        copyToDrawableAndFrameStore(source: previousFrame, drawable: drawable, commandBuffer: commandBuffer)
         
         commandBuffer.present(drawable)
         commandBuffer.commit()
