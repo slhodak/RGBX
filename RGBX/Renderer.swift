@@ -33,7 +33,8 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
         samplerState = Renderer.makeSamplerState(device: device,
                                                  minMagFilter: .linear)
         algorithmicTexture = AlgorithmicTexture(device: device)
-        previousFrame = Renderer.makeFrameTexture(device: device)
+        let frameTextureDescriptor = Renderer.makeFrameTextureDescriptor()
+        previousFrame = device.makeTexture(descriptor: frameTextureDescriptor)!
     }
     
     func mtkView(_ view: MTKView, drawableSizeWillChange size: CGSize) {}
@@ -49,11 +50,6 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
                                                          view: metalView,
                                                          vertexDescriptor: vertexDescriptor)
         ]
-    }
-    
-    static func makeFrameTexture(device: MTLDevice) -> MTLTexture {
-        let frameTextureDescriptor = Renderer.makeFrameTextureDescriptor()
-        return device.makeTexture(descriptor: frameTextureDescriptor)!
     }
     
     static func makeFrameTextureDescriptor() -> MTLTextureDescriptor {
@@ -133,11 +129,6 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
         blitEncoder.endEncoding()
     }
     
-    func setVertexUniforms() {
-        vertexUniforms = VertexUniforms(textureScale: algorithmicTexture.params.textureScaleXY,
-                                        shouldResize: useOriginalMaterial ? 1 : 0)
-    }
-    
     func setFragmentBytes(on renderEncoder: MTLRenderCommandEncoder) {
         /// Update this value in case it has changed
         editableFragmentUniformsA.useOriginalMaterial = useOriginalMaterial
@@ -200,7 +191,9 @@ class Renderer: NSObject, MTKViewDelegate, ObservableObject {
             return
         }
         
-        setVertexUniforms()
+        vertexUniforms = VertexUniforms(textureScale: algorithmicTexture.params.textureScaleXY,
+                                        shouldResize: useOriginalMaterial ? 1 : 0)
+        
         setSamplerState(on: renderEncoder)
         renderEncoder.setRenderPipelineState(pipelineStates[fragmentAlgorithm]!)
         renderEncoder.setVertexBytes(&vertexUniforms, length: MemoryLayout<VertexUniforms>.size, index: 1)
