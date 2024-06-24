@@ -100,21 +100,14 @@ fragment float4 fragment_algo_b(VertexOut frag_in [[stage_in]],
         return float4(center, 1);
     }
     
-    float2 texelSize = 1.0 / float2(texture.get_width(), texture.get_height());
+    //float2 texelSize = 1.0 / float2(texture.get_width(), texture.get_height());
     
-    float4 left = texture.sample(textureSampler, frag_in.texCoords - float2(texelSize.x, 0));
-    float4 right = texture.sample(textureSampler, frag_in.texCoords + float2(texelSize.x, 0));
-    float4 top = texture.sample(textureSampler, frag_in.texCoords - float2(0, texelSize.y));
-    float4 bottom = texture.sample(textureSampler, frag_in.texCoords + float2(0, texelSize.y));
+//    float4 left = texture.sample(textureSampler, frag_in.texCoords - float2(texelSize.x, 0));
+//    float4 right = texture.sample(textureSampler, frag_in.texCoords + float2(texelSize.x, 0));
+//    float4 top = texture.sample(textureSampler, frag_in.texCoords - float2(0, texelSize.y));
+//    float4 bottom = texture.sample(textureSampler, frag_in.texCoords + float2(0, texelSize.y));
     
-    float brightness = sum(left)/4 + sum(right)/4 + sum(top)/4 + sum(bottom)/4;
-    if (brightness > uniforms.topThreshold) {
-        return float4(uniforms.deadColor, 1);
-    }
-    
-    if (brightness < uniforms.bottomThreshold) {
-        return float4(uniforms.deadColor, 1);
-    }
-    
-    return float4(uniforms.liveColor, 1);
+    //float brightness = sum(left)/4 + sum(right)/4 + sum(top)/4 + sum(bottom)/4;
+    return float4((sin(3*M_PI_F*center) + 1) / 2,
+                  1);
 };
